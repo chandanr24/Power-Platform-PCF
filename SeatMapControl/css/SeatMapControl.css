@@ -1,0 +1,239 @@
+.login-control {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    min-height: 480px;
+}
+
+.login-screen {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    padding: 32px 16px;
+    background: #f8fafc;
+    color: #111827;
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+}
+
+.login-screen *,
+.login-screen *::before,
+.login-screen *::after {
+    box-sizing: border-box;
+}
+
+.login-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: min(100%, 448px);
+    padding: 49px;
+    border: 1px solid #f3f4f6;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%),
+        0 4px 6px -4px rgb(0 0 0 / 10%);
+}
+
+.login-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 46px;
+    text-align: center;
+}
+
+.login-brand {
+    display: block;
+    width: 160px;
+    height: 80px;
+    margin-bottom: 24px;
+    transform: translateX(-6px);
+}
+
+.login-title {
+    margin: 8px 0 18px;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 30px;
+    letter-spacing: 0;
+}
+
+.login-instructions {
+    margin: 0;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    letter-spacing: 0;
+}
+
+.microsoft-sign-in {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 24px;
+    border: 0;
+    border-radius: 6px;
+    background: #ff5800;
+    box-shadow: 0 1px 1px rgb(0 0 0 / 5%);
+    color: #ffffff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px;
+    letter-spacing: 0;
+}
+
+.microsoft-sign-in svg {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+}
+
+.microsoft-sign-in:hover {
+    background: #e84f00;
+}
+
+.microsoft-sign-in:active {
+    background: #cf4700;
+}
+
+.microsoft-sign-in:focus-visible {
+    outline: 3px solid #2563eb;
+    outline-offset: 3px;
+}
+
+.microsoft-sign-in:disabled {
+    background: #d1d5db;
+    color: #6b7280;
+    cursor: not-allowed;
+}
+
+.login-error {
+    margin: 12px 0 0;
+    color: #b91c1c;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 18px;
+    text-align: center;
+}
+
+.login-security {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    letter-spacing: 0;
+    text-align: center;
+}
+
+.login-security svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+}
+
+.login-control--mobile {
+    min-height: 100%;
+}
+
+.login-control--mobile .login-screen {
+        align-items: stretch;
+        min-height: 100%;
+        padding: 0;
+        background: #ffffff;
+}
+
+.login-control--mobile .login-card {
+        justify-content: center;
+        width: 100%;
+        min-height: 100%;
+        padding: 32px 24px;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+}
+
+.login-control--mobile .login-header {
+        margin-bottom: 32px;
+}
+
+.login-control--mobile .login-brand {
+        width: 148px;
+        height: 68px;
+        margin-bottom: 20px;
+}
+
+.login-control--mobile .login-title {
+        margin-top: 4px;
+        font-size: 20px;
+        line-height: 26px;
+}
+
+.login-control--mobile .login-instructions {
+        max-width: 260px;
+}
+
+.login-control--mobile .microsoft-sign-in {
+        min-height: 48px;
+        padding-inline: 16px;
+}
+
+/* Tablet portrait */
+.login-control--tablet .login-screen {
+        padding: 48px 24px;
+}
+
+.login-control--tablet .login-card {
+        width: min(100%, 448px);
+}
+
+/* Tablet landscape and compact desktop */
+.login-control--compact .login-screen {
+        padding: 40px;
+}
+
+/* Short landscape viewports */
+.login-control--short {
+    min-height: 100%;
+}
+
+.login-control--short .login-screen {
+        align-items: flex-start;
+        min-height: 100%;
+        padding-block: 24px;
+        overflow-y: auto;
+}
+
+.login-control--short .login-card {
+        padding-block: 32px;
+}
+
+.login-control--short .login-header {
+        margin-bottom: 28px;
+}
+
+.login-control--short .login-brand {
+        height: 60px;
+        margin-bottom: 12px;
+}
+
+.login-control--short .login-title {
+        margin-block: 4px 12px;
+        font-size: 21px;
+        line-height: 26px;
+}

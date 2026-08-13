@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<manifest>
+  <control namespace="SeatBooking" constructor="SeatMapControl" version="0.0.11" display-name-key="SeatMapControl" description-key="SeatMapControl description" control-type="virtual" >
+    <property name="previewMode" display-name-key="Preview_Mode" description-key="Temporary local screen preview without Canvas or SharePoint writes; keep false in production" of-type="TwoOptions" usage="input" required="false" />
+    <property name="currentUserEmail" display-name-key="Current_User_Email" description-key="Email of the signed-in Canvas app user" of-type="SingleLine.Text" usage="input" required="false" />
+    <property name="canCreateBookings" display-name-key="Can_Create_Bookings" description-key="Whether the current user may create seat bookings" of-type="TwoOptions" usage="input" required="false" />
+    <property name="canBookForAnyone" display-name-key="Can_Book_For_Anyone" description-key="Whether the current user may select any employee" of-type="TwoOptions" usage="input" required="false" />
+    <property name="maximumPeoplePerBooking" display-name-key="Maximum_People_Per_Booking" description-key="Maximum employees allowed in one booking" of-type="Whole.None" usage="input" required="false" />
+    <property name="actionResultJson" display-name-key="Action_Result_JSON" description-key="Result returned by Canvas after handling the latest action request" of-type="Multiple" usage="input" required="false" />
+    <property name="actionRequestJson" display-name-key="Action_Request_JSON" description-key="Booking action requested by the React control" of-type="Multiple" usage="output" required="false" />
+    <property name="actionSequence" display-name-key="Action_Sequence" description-key="Incrementing value used to trigger the Canvas OnChange formula" of-type="Whole.None" usage="output" required="false" />
+    <!--external-service-usage node declares whether this 3rd party PCF control is using external service or not, if yes, this control will be considered as premium and please also add the external domain it is using.
+    If it is not using any external service, please set the enabled="false" and DO NOT add any domain below. The "enabled" will be false by default.
+    Example1:
+      <external-service-usage enabled="true">
+        <domain>www.Microsoft.com</domain>
+      </external-service-usage>
+    Example2:
+      <external-service-usage enabled="false">
+      </external-service-usage>
+    -->
+    <external-service-usage enabled="false">
+      <!--UNCOMMENT TO ADD EXTERNAL DOMAINS
+      <domain></domain>
+      <domain></domain>
+      -->
+    </external-service-usage>
+    <!-- dataset node represents a set of entity records on CDS; allow more than one datasets -->
+    <data-set name="employeesDataSet" display-name-key="Employees_Dataset">
+      <property-set name="employeeId" display-name-key="Employee_ID" description-key="Stable employee identifier" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="employeeName" display-name-key="Employee_Name" description-key="Employee display name" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="employeePerson" display-name-key="Employee_Email" description-key="Native SharePoint EmployeeMail Person column" of-type="Lookup.Simple" usage="bound" required="true" />
+      <property-set name="managerPerson" display-name-key="Manager_Email" description-key="Native SharePoint Manager Person column" of-type="Lookup.Simple" usage="bound" required="true" />
+    </data-set>
+    <data-set name="seatRangesDataSet" display-name-key="Seat_Ranges_Dataset">
+      <property-set name="rangeId" display-name-key="Range_ID" description-key="SharePoint SeatRanges record ID" of-type="Whole.None" usage="bound" required="true" />
+      <property-set name="rangeFloor" display-name-key="Range_Floor" description-key="Floor choice for the configured range" of-type="OptionSet" usage="bound" required="true" />
+      <property-set name="rangeZone" display-name-key="Range_Zone" description-key="Zone choice for the configured range" of-type="OptionSet" usage="bound" required="true" />
+      <property-set name="seatPrefix" display-name-key="Seat_Prefix" description-key="Prefix used to generate seat numbers such as WS-" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="startNumber" display-name-key="Start_Number" description-key="First seat number in the range" of-type="Whole.None" usage="bound" required="true" />
+      <property-set name="endNumber" display-name-key="End_Number" description-key="Last seat number in the range" of-type="Whole.None" usage="bound" required="true" />
+      <property-set name="numberPadding" display-name-key="Number_Padding" description-key="Number of digits used to pad generated seat numbers" of-type="Whole.None" usage="bound" required="true" />
+      <property-set name="rangeStatus" display-name-key="Range_Status" description-key="Seat range status such as Active or Inactive" of-type="OptionSet" usage="bound" required="true" />
+    </data-set>
+    <data-set name="seatExceptionsDataSet" display-name-key="Seat_Exceptions_Dataset">
+      <property-set name="exceptionId" display-name-key="Exception_ID" description-key="SharePoint SeatExceptions record ID" of-type="Whole.None" usage="bound" required="true" />
+      <property-set name="exceptionSeatKey" display-name-key="Exception_Seat_Key" description-key="Stable floor-zone-seat key for the exception" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="exceptionStatus" display-name-key="Exception_Status" description-key="Exception status such as Maintenance or Disabled" of-type="OptionSet" usage="bound" required="true" />
+      <property-set name="exceptionStartDate" display-name-key="Exception_Start_Date" description-key="Optional first date on which the exception applies" of-type="DateAndTime.DateAndTime" usage="bound" required="false" />
+      <property-set name="exceptionEndDate" display-name-key="Exception_End_Date" description-key="Optional last date on which the exception applies" of-type="DateAndTime.DateAndTime" usage="bound" required="false" />
+    </data-set>
+    <data-set name="seatBookingsDataSet" display-name-key="Seat_Bookings_Dataset">
+      <property-set name="bookingId" display-name-key="Booking_ID" description-key="SharePoint SeatBookings record ID" of-type="Whole.None" usage="bound" required="true" />
+      <property-set name="bookingDate" display-name-key="Booking_Date" description-key="Booking date and time" of-type="DateAndTime.DateAndTime" usage="bound" required="true" />
+      <property-set name="bookingSeat" display-name-key="Booking_Seat" description-key="Legacy SharePoint WorkStationNumber lookup retained during migration" of-type="Lookup.Simple" usage="bound" required="false" />
+      <property-set name="bookingSeatKey" display-name-key="Booking_Seat_Key" description-key="Stable floor-zone-seat key for a virtual seat" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="bookingSeatNumber" display-name-key="Booking_Seat_Number" description-key="Displayed workstation number snapshot" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="bookingEmployee" display-name-key="Booking_Employee" description-key="Native SharePoint Employee Person column" of-type="Lookup.Simple" usage="bound" required="true" />
+      <property-set name="bookingCreatedBy" display-name-key="Booking_Created_By" description-key="Native SharePoint Created By Person column" of-type="Lookup.Simple" usage="bound" required="true" />
+      <property-set name="bookingStatus" display-name-key="Booking_Status" description-key="Booking status choice" of-type="OptionSet" usage="bound" required="true" />
+      <property-set name="bookingFloor" display-name-key="Booking_Floor" description-key="Floor snapshot choice" of-type="OptionSet" usage="bound" required="true" />
+      <property-set name="bookingZone" display-name-key="Booking_Zone" description-key="Zone snapshot choice" of-type="OptionSet" usage="bound" required="true" />
+      <property-set name="bookingKey" display-name-key="Booking_Key" description-key="Unique date-floor-zone-seat key" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="reservationExpiresAt" display-name-key="Reservation_Expires_At" description-key="Expiration time for Selected reservations" of-type="DateAndTime.DateAndTime" usage="bound" required="true" />
+    </data-set>
+    <resources>
+      <code path="index.ts" order="1"/>
+      <css path="css/SeatMapControl.css" order="1" />
+      <css path="css/HomeScreen.css" order="2" />
+      <css path="css/BookSeatScreen.css" order="3" />
+      <css path="css/SeatSelectionScreen.css" order="4" />
+      <css path="css/BookingConfirmationScreen.css" order="5" />
+      <platform-library name="React" version="16.14.0" />
+      <platform-library name="Fluent" version="9.46.2" />
+      <!-- UNCOMMENT TO ADD MORE RESOURCES
+      <css path="css/SeatMapControl.css" order="1" />
+      <resx path="strings/SeatMapControl.1033.resx" version="1.0.0" />
+      -->
+    </resources>
+    <!-- UNCOMMENT TO ENABLE THE SPECIFIED API
+    <feature-usage>
+      <uses-feature name="Device.captureAudio" required="true" />
+      <uses-feature name="Device.captureImage" required="true" />
+      <uses-feature name="Device.captureVideo" required="true" />
+      <uses-feature name="Device.getBarcodeValue" required="true" />
+      <uses-feature name="Device.getCurrentPosition" required="true" />
+      <uses-feature name="Device.pickFile" required="true" />
+      <uses-feature name="Utility" required="true" />
+      <uses-feature name="WebAPI" required="true" />
+    </feature-usage>
+    -->
+  </control>
+</manifest>

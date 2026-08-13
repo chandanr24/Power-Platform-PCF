@@ -1,0 +1,13 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Microsoft Logo (Simplified via SVG)" clip-path="url(#clip0_0_6)">
+<path id="Vector" d="M0.952381 0.952381H9.52381V9.52381H0.952381V0.952381" fill="#F25022"/>
+<path id="Vector_2" d="M10.4762 0.952381H19.0476V9.52381H8.57143L10.4762 0.952381" fill="#7FBB00"/>
+<path id="Vector_3" d="M0.952381 10.4762H9.52381V19.0476H0.952381V10.4762" fill="#00A1F1"/>
+<path id="Vector_4" d="M10.4762 10.4762H19.0476V19.0476H8.57143L10.4762 10.4762" fill="#FFB900"/>
+</g>
+<defs>
+<clipPath id="clip0_0_6">
+<rect width="20" height="20" fill="white"/>
+</clipPath>
+</defs>
+</svg>
