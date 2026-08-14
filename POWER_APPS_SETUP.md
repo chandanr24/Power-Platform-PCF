@@ -128,6 +128,11 @@ Map the PCF property-set fields directly:
 | `employeePerson` | internal name of `EmployeeMail` |
 | `managerPerson` | internal name of `Manager` |
 
+Version 0.0.12 resolves the `employeeId` and `employeeName` property-set
+mappings to their bound SharePoint columns before reading the values. Bind
+these properties to `EmpCode` and `EmployeeName`; do not duplicate or rename
+the SharePoint columns to match the PCF aliases.
+
 `employeePerson` and `managerPerson` are `Lookup.Simple`; React extracts the
 email from each native SharePoint Person object. In SharePoint List settings,
 configure both `EmployeeMail` and `Manager` with **Show field = Work email** so

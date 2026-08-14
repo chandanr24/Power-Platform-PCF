@@ -178,6 +178,22 @@ const getMappedColumnNames = (
     return Array.from(new Set([propertySetAlias, ...mappedNames]));
 };
 
+const getMappedText = (
+    dataSet: DataSet,
+    record: ComponentFramework.PropertyHelper.DataSetApi.EntityRecord,
+    propertySetAlias: string
+): string => {
+    for (const columnName of getMappedColumnNames(dataSet, propertySetAlias)) {
+        const value = getText(record, columnName);
+
+        if (value) {
+            return value;
+        }
+    }
+
+    return "";
+};
+
 const getMappedPersonEmail = (
     dataSet: DataSet,
     record: ComponentFramework.PropertyHelper.DataSetApi.EntityRecord,
@@ -212,14 +228,14 @@ export const parseEmployeeDataSet = (dataSet: DataSet): IEmployee[] =>
         .map((id) => dataSet.records[id])
         .filter(Boolean)
         .map((record) => ({
-            employeeId: getText(record, "employeeId"),
+            employeeId: getMappedText(dataSet, record, "employeeId"),
             email: getMappedPersonEmail(dataSet, record, "employeePerson"),
             managerEmail: getMappedPersonEmail(
                 dataSet,
                 record,
                 "managerPerson"
             ),
-            name: getText(record, "employeeName")
+            name: getMappedText(dataSet, record, "employeeName")
         }))
         .filter(
             (employee) =>
