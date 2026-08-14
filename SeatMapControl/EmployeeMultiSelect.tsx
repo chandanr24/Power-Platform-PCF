@@ -61,7 +61,7 @@ export class EmployeeMultiSelect extends React.PureComponent<
         const results = query
             ? this.props.employees
                   .filter((employee) =>
-                      [employee.name, employee.email, employee.employeeId]
+                      [employee.name, employee.employeeId]
                           .join(" ")
                           .toLowerCase()
                           .includes(query)
@@ -81,7 +81,7 @@ export class EmployeeMultiSelect extends React.PureComponent<
                     <input
                         aria-controls="employee-search-results"
                         aria-expanded={results.length > 0}
-                        placeholder="Search name, ID, or email"
+                        placeholder="Search employee name or code"
                         type="search"
                         value={this.state.query}
                         onChange={(event) =>
