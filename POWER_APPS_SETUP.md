@@ -128,15 +128,28 @@ Map the PCF property-set fields directly:
 | `employeePerson` | internal name of `EmployeeMail` |
 | `managerPerson` | internal name of `Manager` |
 
-Version 0.0.12 resolves the `employeeId` and `employeeName` property-set
+Version 0.0.13 resolves the `employeeId` and `employeeName` property-set
 mappings to their bound SharePoint columns before reading the values. Bind
 these properties to `EmpCode` and `EmployeeName`; do not duplicate or rename
 the SharePoint columns to match the PCF aliases.
 
+In the Book Seat employee selector, users search by employee name or employee
+code only. Search results and selected employees display `EmployeeName` and
+`EmpCode`; the employee email is not shown and is not included in search. The
+search placeholder is **Search employee name or code**.
+
 `employeePerson` and `managerPerson` are `Lookup.Simple`; React extracts the
 email from each native SharePoint Person object. In SharePoint List settings,
 configure both `EmployeeMail` and `Manager` with **Show field = Work email** so
-the PCF dataset also receives the email as the formatted lookup value.
+the PCF dataset also receives the email as the formatted lookup value. Keep
+these mappings even though email is hidden in the Book Seat UI: the control
+uses email internally for employee identity, duplicate checks, existing-booking
+validation, and authorization.
+
+Power Apps may expose a `Lookup.Simple` Person value through `Email`, `Mail`,
+UPN, `name`, or `value`, depending on the Canvas and SharePoint runtime shape.
+Version 0.0.13 accepts all of these shapes but uses a candidate only when it
+contains `@`; a person's display name is therefore never treated as an email.
 
 ### Seat ranges: `seatRangesDataSet_Items`
 
@@ -264,6 +277,10 @@ canBookForAnyone = false
 maximumPeoplePerBooking = 30
 actionResultJson = varSeatBookingActionResult
 ```
+
+Version 0.0.13 also treats a blank, invalid, or zero
+`maximumPeoplePerBooking` input as `30`. A positive value supplied by Canvas is
+used as configured.
 
 The React control repeats the manager/self filter as a client-side defense, but
 the delegable `Items` formula is the server-side scope that prevents unrelated

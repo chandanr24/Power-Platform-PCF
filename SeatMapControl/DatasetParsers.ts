@@ -139,10 +139,14 @@ const getPersonEmail = (
             "mail",
             "Mail",
             "userPrincipalName",
-            "UserPrincipalName"
+            "UserPrincipalName",
+            "name",
+            "Name",
+            "value",
+            "Value"
         ]);
 
-        if (jsonEmail) {
+        if (jsonEmail.includes("@")) {
             return jsonEmail;
         }
     }
@@ -157,13 +161,18 @@ const getPersonEmail = (
         "mail",
         "Mail",
         "userPrincipalName",
-        "UserPrincipalName"
+        "UserPrincipalName",
+        "name",
+        "Name",
+        "value",
+        "Value"
     ];
 
-    return (
+    const objectEmail =
         getObjectText(value, emailKeys) ||
-        getFormattedObjectText(record, column, emailKeys)
-    );
+        getFormattedObjectText(record, column, emailKeys);
+
+    return objectEmail.includes("@") ? objectEmail : "";
 };
 
 const getMappedColumnNames = (
