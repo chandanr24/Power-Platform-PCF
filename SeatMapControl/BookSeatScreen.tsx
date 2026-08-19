@@ -161,6 +161,12 @@ export class BookSeatScreen extends React.PureComponent<
             errors.push("The same employee cannot be selected more than once.");
         }
 
+        if (selectedEmployees.some((employee) => !employee.email.trim())) {
+            errors.push(
+                "Employee email is required to complete a booking. Map EmployeeMail before continuing."
+            );
+        }
+
         if (alreadyBookedEmployees.length > 0) {
             errors.push(
                 `${alreadyBookedEmployees

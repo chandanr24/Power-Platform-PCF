@@ -246,10 +246,7 @@ export const parseEmployeeDataSet = (dataSet: DataSet): IEmployee[] =>
             ),
             name: getMappedText(dataSet, record, "employeeName")
         }))
-        .filter(
-            (employee) =>
-                employee.employeeId && employee.name && employee.email
-        );
+        .filter((employee) => employee.employeeId && employee.name);
 
 export const parseSeatRangeDataSet = (dataSet: DataSet): ISeat[] => {
     const ranges = dataSet.sortedRecordIds

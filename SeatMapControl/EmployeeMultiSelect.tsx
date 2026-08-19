@@ -23,10 +23,13 @@ export class EmployeeMultiSelect extends React.PureComponent<
     public state: IEmployeeMultiSelectState = { query: "" };
 
     private readonly addEmployee = (employee: IEmployee): void => {
-        const normalizedEmail = employee.email.trim().toLowerCase();
+        const employeeIdentity =
+            employee.email.trim().toLowerCase() ||
+            employee.employeeId.trim().toLowerCase();
         const duplicate = this.props.selectedEmployees.some(
             (selected) =>
-                selected.email.trim().toLowerCase() === normalizedEmail
+                (selected.email.trim().toLowerCase() ||
+                    selected.employeeId.trim().toLowerCase()) === employeeIdentity
         );
 
         if (duplicate) {
