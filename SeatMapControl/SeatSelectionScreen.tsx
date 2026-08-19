@@ -74,7 +74,6 @@ const toRequestAssignment = (
     bookingDate: date,
     bookingId: assignment.bookingId,
     bookingKey: assignment.bookingKey,
-    employeeEmail: assignment.employee.email,
     employeeId: assignment.employee.employeeId,
     employeeName: assignment.employee.name,
     expiresAt: assignment.expiresAt,

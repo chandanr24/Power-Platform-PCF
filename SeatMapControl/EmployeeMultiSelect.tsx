@@ -23,10 +23,13 @@ export class EmployeeMultiSelect extends React.PureComponent<
     public state: IEmployeeMultiSelectState = { query: "" };
 
     private readonly addEmployee = (employee: IEmployee): void => {
-        const normalizedEmail = employee.email.trim().toLowerCase();
+        const employeeIdentity =
+            employee.employeeId.trim().toLowerCase() ||
+            employee.email.trim().toLowerCase();
         const duplicate = this.props.selectedEmployees.some(
             (selected) =>
-                selected.email.trim().toLowerCase() === normalizedEmail
+                (selected.employeeId.trim().toLowerCase() ||
+                    selected.email.trim().toLowerCase()) === employeeIdentity
         );
 
         if (duplicate) {
@@ -61,7 +64,7 @@ export class EmployeeMultiSelect extends React.PureComponent<
         const results = query
             ? this.props.employees
                   .filter((employee) =>
-                      [employee.name, employee.email, employee.employeeId]
+                      [employee.name, employee.employeeId]
                           .join(" ")
                           .toLowerCase()
                           .includes(query)
@@ -81,7 +84,7 @@ export class EmployeeMultiSelect extends React.PureComponent<
                     <input
                         aria-controls="employee-search-results"
                         aria-expanded={results.length > 0}
-                        placeholder="Search name, ID, or email"
+                        placeholder="Search employee name or code"
                         type="search"
                         value={this.state.query}
                         onChange={(event) =>

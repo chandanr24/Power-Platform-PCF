@@ -135,7 +135,13 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
             seats
         } = this.props;
         const currentEmail = currentUserEmail.trim().toLowerCase();
-        const selectableEmployees = canBookForAnyone
+        const hasEmployeeRelationshipData = employees.some(
+            (employee) =>
+                Boolean(employee.email.trim()) ||
+                Boolean(employee.managerEmail.trim())
+        );
+        const selectableEmployees =
+            canBookForAnyone || !hasEmployeeRelationshipData
             ? employees
             : employees.filter(
                   (employee) =>

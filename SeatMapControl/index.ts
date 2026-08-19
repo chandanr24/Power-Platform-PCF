@@ -59,6 +59,14 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
     public updateView(context: ComponentFramework.Context<IInputs>): React.ReactElement {
         // TEMPORARY PREVIEW MODE: remove after all screens are approved.
         const previewMode = context.parameters.previewMode.raw ?? false;
+        const configuredMaximumPeople =
+            context.parameters.maximumPeoplePerBooking.raw;
+        const maximumPeoplePerBooking =
+            typeof configuredMaximumPeople === "number" &&
+            Number.isFinite(configuredMaximumPeople) &&
+            configuredMaximumPeople > 0
+                ? Math.trunc(configuredMaximumPeople)
+                : 30;
 
         if (!previewMode) {
             this.employeePagingInitialized = this.initializeDataSetPaging(
@@ -107,8 +115,7 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
                 previewMode
                     ? "manager@example.com"
                     : context.parameters.currentUserEmail.raw ?? "",
-            maximumPeoplePerBooking:
-                context.parameters.maximumPeoplePerBooking.raw ?? 30,
+            maximumPeoplePerBooking,
             onActionRequest: this.handleActionRequest,
             previewMode,
             seats: previewMode

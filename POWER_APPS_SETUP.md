@@ -60,7 +60,8 @@ required by the PCF dataset.
 | `WorkStationNumber` | Lookup to WorkStationNumber | legacy, optional during migration |
 | `SeatKey` | Single line of text | required for new virtual bookings |
 | `SeatNumber` | Single line of text | required for new virtual bookings |
-| `Employee` | Person | required, single selection |
+| `Employee` | Person | required, single selection; populated from Employees by EmpCode |
+| `EmployeeId` | Single line of text | required for new bookings; immutable EmpCode snapshot |
 | `Status` | Choice | `Selected`, `Booked`, `Cancelled` |
 | `Floor` | Choice | required |
 | `Zone` | Choice | required |
@@ -125,13 +126,25 @@ Map the PCF property-set fields directly:
 | --- | --- |
 | `employeeId` | internal name of `EmpCode` |
 | `employeeName` | internal name of `EmployeeName` |
-| `employeePerson` | internal name of `EmployeeMail` |
-| `managerPerson` | internal name of `Manager` |
+| `employeePerson` | optional internal name of `EmployeeMail` |
+| `managerPerson` | optional internal name of `Manager` |
 
-`employeePerson` and `managerPerson` are `Lookup.Simple`; React extracts the
-email from each native SharePoint Person object. In SharePoint List settings,
-configure both `EmployeeMail` and `Manager` with **Show field = Work email** so
-the PCF dataset also receives the email as the formatted lookup value.
+Version 0.0.15 resolves `employeeId` and `employeeName` from the bound
+SharePoint columns. Bind these to `EmpCode` and `EmployeeName`; do not duplicate
+or rename the SharePoint columns to match PCF aliases.
+
+In the Book Seat selector, users search by employee name or employee code only.
+Search results and selected employees display `EmployeeName` and `EmpCode`; no
+email is displayed, searched, or required to continue to seat selection.
+
+`employeePerson` and `managerPerson` are optional. Leave both unmapped when
+Power Apps filters the Employees dataset and the PCF should work with name and
+ID only. If they are mapped, the PCF can retain its optional client-side
+manager/self filtering and use email only as a legacy duplicate fallback.
+
+Keep `EmployeeMail` in the Employees SharePoint list. Power Apps or Power
+Automate resolves it by `EmpCode` after a booking is confirmed; the PCF does
+not send employee email in `actionRequestJson`.
 
 ### Seat ranges: `seatRangesDataSet_Items`
 
@@ -208,6 +221,7 @@ Map directly:
 | `bookingSeatKey` | internal name of `SeatKey` |
 | `bookingSeatNumber` | internal name of `SeatNumber` |
 | `bookingEmployee` | internal name of `Employee` |
+| `bookingEmployeeId` | internal name of `EmployeeId` |
 | `bookingCreatedBy` | `Author` unless the field selector shows otherwise |
 | `bookingStatus` | internal name of `Status` |
 | `bookingFloor` | internal name of `Floor` |
@@ -216,8 +230,10 @@ Map directly:
 | `reservationExpiresAt` | internal name of `ReservationExpiresAt` |
 
 `bookingEmployee` and `bookingCreatedBy` are native `Lookup.Simple` properties.
-React extracts the Person emails. The optional `bookingSeat` lookup is read only
-as a legacy fallback while existing booking rows are being backfilled.
+`bookingEmployeeId` is the EmpCode snapshot used for active duplicate-booking
+checks. Populate it for every new booking. The optional `bookingSeat` lookup is
+read only as a legacy fallback while existing booking rows are being backfilled.
+Legacy rows without EmployeeId use Person email only as a temporary fallback.
 
 ## Authentication and permissions
 
@@ -259,6 +275,10 @@ canBookForAnyone = false
 maximumPeoplePerBooking = 30
 actionResultJson = varSeatBookingActionResult
 ```
+
+Version 0.0.13 also treats a blank, invalid, or zero
+`maximumPeoplePerBooking` input as `30`. A positive value supplied by Canvas is
+used as configured.
 
 The React control repeats the manager/self filter as a client-side defense, but
 the delegable `Items` formula is the server-side scope that prevents unrelated
@@ -326,6 +346,12 @@ For a `reserve` request, write the request assignment values directly to the
 new booking snapshot columns:
 
 ```powerfx
+EmployeeId: Text(requestAssignment.employeeId),
+Employee: LookUp(
+    Employees,
+    EmpCode = Text(requestAssignment.employeeId),
+    EmployeeMail
+),
 SeatKey: Text(requestAssignment.seatKey),
 SeatNumber: Text(requestAssignment.seatNumber),
 Floor: {Value: Text(requestAssignment.floor)},
@@ -334,7 +360,28 @@ Zone: {Value: Text(requestAssignment.zone)}
 
 Do not patch the legacy `WorkStationNumber` lookup for new virtual bookings.
 The request's `bookingKey` remains the value written to the unique BookingKey
-column.
+column. It atomically prevents two users from reserving the same seat on the
+same date. The PCF additionally checks EmployeeId for normal duplicate booking
+prevention and ignores `Selected` records whose ReservationExpiresAt has passed.
+
+A single BookingKey cannot atomically protect both a seat and an employee across
+different seats. If strict cross-seat employee concurrency is later required,
+add a separate unique employee/date key or serialize that validation in the
+backend flow.
+
+## Confirmation email flow
+
+After a successful `confirmGroup` result, Power Apps can call a Power Apps (V2)
+flow once per confirmed assignment. Pass only `EmployeeId` and `BookingKey`.
+The flow should:
+
+1. Get the matching Employees record using `EmpCode = EmployeeId`.
+2. Read `EmployeeMail.Email` from that record.
+3. Send the confirmation email using that address.
+
+Do not call the flow for `reserve`, `release`, or expired reservations. The PCF
+does not pass employee email; the backend lookup makes the Employees list the
+source of truth for notifications.
 
 ## Delegation rules for this app
 
@@ -358,8 +405,8 @@ Avoid for production datasource retrieval:
 Recommended SharePoint indexes are Employees `Manager`, `EmployeeMail`, and
 `EmpCode`; SeatRanges `Status`, `Floor`, and `Zone`; SeatExceptions `SeatKey`,
 `Status`, `StartDate`, and `EndDate`; and SeatBookings `BookingDate`, `Status`,
-`SeatKey`, `ReservationExpiresAt`, `Employee`, `Author`, and the unique
-`BookingKey`.
+`SeatKey`, `ReservationExpiresAt`, `Employee`, `EmployeeId`, `Author`, and the
+unique `BookingKey`.
 
 ## Reservation cleanup flow
 

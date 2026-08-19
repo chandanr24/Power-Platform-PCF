@@ -139,10 +139,14 @@ const getPersonEmail = (
             "mail",
             "Mail",
             "userPrincipalName",
-            "UserPrincipalName"
+            "UserPrincipalName",
+            "name",
+            "Name",
+            "value",
+            "Value"
         ]);
 
-        if (jsonEmail) {
+        if (jsonEmail.includes("@")) {
             return jsonEmail;
         }
     }
@@ -157,13 +161,18 @@ const getPersonEmail = (
         "mail",
         "Mail",
         "userPrincipalName",
-        "UserPrincipalName"
+        "UserPrincipalName",
+        "name",
+        "Name",
+        "value",
+        "Value"
     ];
 
-    return (
+    const objectEmail =
         getObjectText(value, emailKeys) ||
-        getFormattedObjectText(record, column, emailKeys)
-    );
+        getFormattedObjectText(record, column, emailKeys);
+
+    return objectEmail.includes("@") ? objectEmail : "";
 };
 
 const getMappedColumnNames = (
@@ -176,6 +185,22 @@ const getMappedColumnNames = (
         .filter((name) => Boolean(name));
 
     return Array.from(new Set([propertySetAlias, ...mappedNames]));
+};
+
+const getMappedText = (
+    dataSet: DataSet,
+    record: ComponentFramework.PropertyHelper.DataSetApi.EntityRecord,
+    propertySetAlias: string
+): string => {
+    for (const columnName of getMappedColumnNames(dataSet, propertySetAlias)) {
+        const value = getText(record, columnName);
+
+        if (value) {
+            return value;
+        }
+    }
+
+    return "";
 };
 
 const getMappedPersonEmail = (
@@ -212,19 +237,16 @@ export const parseEmployeeDataSet = (dataSet: DataSet): IEmployee[] =>
         .map((id) => dataSet.records[id])
         .filter(Boolean)
         .map((record) => ({
-            employeeId: getText(record, "employeeId"),
+            employeeId: getMappedText(dataSet, record, "employeeId"),
             email: getMappedPersonEmail(dataSet, record, "employeePerson"),
             managerEmail: getMappedPersonEmail(
                 dataSet,
                 record,
                 "managerPerson"
             ),
-            name: getText(record, "employeeName")
+            name: getMappedText(dataSet, record, "employeeName")
         }))
-        .filter(
-            (employee) =>
-                employee.employeeId && employee.name && employee.email
-        );
+        .filter((employee) => employee.employeeId && employee.name);
 
 export const parseSeatRangeDataSet = (dataSet: DataSet): ISeat[] => {
     const ranges = dataSet.sortedRecordIds
@@ -336,6 +358,7 @@ export const parseBookingDataSet = (dataSet: DataSet): ISeatBooking[] =>
                 bookingKey,
                 createdByEmail: getPersonEmail(record, "bookingCreatedBy"),
                 employeeEmail: getPersonEmail(record, "bookingEmployee"),
+                employeeId: getText(record, "bookingEmployeeId"),
                 expiresAt:
                     getDateTime(record, "reservationExpiresAt") || undefined,
                 floor,

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest>
-  <control namespace="SeatBooking" constructor="SeatMapControl" version="0.0.11" display-name-key="SeatMapControl" description-key="SeatMapControl description" control-type="virtual" >
+
+  <control namespace="SeatBooking" constructor="SeatMapControl" version="0.0.15" display-name-key="SeatMapControl" description-key="SeatMapControl description" control-type="virtual" >
     <property name="previewMode" display-name-key="Preview_Mode" description-key="Temporary local screen preview without Canvas or SharePoint writes; keep false in production" of-type="TwoOptions" usage="input" required="false" />
     <property name="currentUserEmail" display-name-key="Current_User_Email" description-key="Email of the signed-in Canvas app user" of-type="SingleLine.Text" usage="input" required="false" />
     <property name="canCreateBookings" display-name-key="Can_Create_Bookings" description-key="Whether the current user may create seat bookings" of-type="TwoOptions" usage="input" required="false" />
@@ -29,8 +30,8 @@
     <data-set name="employeesDataSet" display-name-key="Employees_Dataset">
       <property-set name="employeeId" display-name-key="Employee_ID" description-key="Stable employee identifier" of-type="SingleLine.Text" usage="bound" required="true" />
       <property-set name="employeeName" display-name-key="Employee_Name" description-key="Employee display name" of-type="SingleLine.Text" usage="bound" required="true" />
-      <property-set name="employeePerson" display-name-key="Employee_Email" description-key="Native SharePoint EmployeeMail Person column" of-type="Lookup.Simple" usage="bound" required="true" />
-      <property-set name="managerPerson" display-name-key="Manager_Email" description-key="Native SharePoint Manager Person column" of-type="Lookup.Simple" usage="bound" required="true" />
+      <property-set name="employeePerson" display-name-key="Employee_Email" description-key="Optional native SharePoint EmployeeMail Person column for legacy duplicate checks and client-side relationship filtering" of-type="Lookup.Simple" usage="bound" required="false" />
+      <property-set name="managerPerson" display-name-key="Manager_Email" description-key="Optional native SharePoint Manager Person column for client-side relationship filtering" of-type="Lookup.Simple" usage="bound" required="false" />
     </data-set>
     <data-set name="seatRangesDataSet" display-name-key="Seat_Ranges_Dataset">
       <property-set name="rangeId" display-name-key="Range_ID" description-key="SharePoint SeatRanges record ID" of-type="Whole.None" usage="bound" required="true" />
@@ -56,6 +57,7 @@
       <property-set name="bookingSeatKey" display-name-key="Booking_Seat_Key" description-key="Stable floor-zone-seat key for a virtual seat" of-type="SingleLine.Text" usage="bound" required="true" />
       <property-set name="bookingSeatNumber" display-name-key="Booking_Seat_Number" description-key="Displayed workstation number snapshot" of-type="SingleLine.Text" usage="bound" required="true" />
       <property-set name="bookingEmployee" display-name-key="Booking_Employee" description-key="Native SharePoint Employee Person column" of-type="Lookup.Simple" usage="bound" required="true" />
+      <property-set name="bookingEmployeeId" display-name-key="Booking_Employee_ID" description-key="Stable employee ID snapshot used for duplicate booking checks" of-type="SingleLine.Text" usage="bound" required="false" />
       <property-set name="bookingCreatedBy" display-name-key="Booking_Created_By" description-key="Native SharePoint Created By Person column" of-type="Lookup.Simple" usage="bound" required="true" />
       <property-set name="bookingStatus" display-name-key="Booking_Status" description-key="Booking status choice" of-type="OptionSet" usage="bound" required="true" />
       <property-set name="bookingFloor" display-name-key="Booking_Floor" description-key="Floor snapshot choice" of-type="OptionSet" usage="bound" required="true" />
