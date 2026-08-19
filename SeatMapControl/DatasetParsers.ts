@@ -358,6 +358,7 @@ export const parseBookingDataSet = (dataSet: DataSet): ISeatBooking[] =>
                 bookingKey,
                 createdByEmail: getPersonEmail(record, "bookingCreatedBy"),
                 employeeEmail: getPersonEmail(record, "bookingEmployee"),
+                employeeId: getText(record, "bookingEmployeeId"),
                 expiresAt:
                     getDateTime(record, "reservationExpiresAt") || undefined,
                 floor,
