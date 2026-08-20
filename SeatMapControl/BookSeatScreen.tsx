@@ -14,7 +14,9 @@ import {
     ISeatBooking,
     ISeatException,
     isActiveBooking,
-    isSeatExceptionActive
+    isSeatExceptionActive,
+    normalizeEmail,
+    normalizeEmployeeId
 } from "./BookingModels";
 import { EmployeeMultiSelect } from "./EmployeeMultiSelect";
 import {
@@ -134,31 +136,54 @@ export class BookSeatScreen extends React.PureComponent<
         const { selectedEmployees } = this.state;
         const availableSeatCount = this.getAvailableSeatCount();
         const errors: string[] = [];
-        const normalizedEmails = selectedEmployees
-            .map((employee) => employee.email.trim().toLowerCase())
+        const normalizedEmployeeIds = selectedEmployees
+            .map((employee) => normalizeEmployeeId(employee.employeeId))
             .filter(Boolean);
-        const duplicateEmails = normalizedEmails.filter(
-            (email, index) => normalizedEmails.indexOf(email) !== index
+        const duplicateEmployeeIds = normalizedEmployeeIds.filter(
+            (employeeId, index) =>
+                normalizedEmployeeIds.indexOf(employeeId) !== index
         );
-        const bookedEmployeeEmails = new Set(
-            this.props.bookings
-                .filter(
-                    (booking) =>
-                        booking.bookingDate === this.state.date &&
-                        isActiveBooking(booking)
-                )
-                .map((booking) => booking.employeeEmail.trim().toLowerCase())
+        const activeBookings = this.props.bookings.filter(
+            (booking) =>
+                booking.bookingDate === this.state.date &&
+                isActiveBooking(booking)
         );
-        const alreadyBookedEmployees = selectedEmployees.filter((employee) =>
-            bookedEmployeeEmails.has(employee.email.trim().toLowerCase())
+        const bookedEmployeeIds = new Set(
+            activeBookings
+                .map((booking) => normalizeEmployeeId(booking.employeeId))
+                .filter(Boolean)
+        );
+        const legacyBookedEmployeeEmails = new Set(
+            activeBookings
+                .filter((booking) => !normalizeEmployeeId(booking.employeeId))
+                .map((booking) => normalizeEmail(booking.employeeEmail))
+                .filter(Boolean)
+        );
+        const alreadyBookedEmployees = selectedEmployees.filter(
+            (employee) =>
+                bookedEmployeeIds.has(
+                    normalizeEmployeeId(employee.employeeId)
+                ) ||
+                (Boolean(normalizeEmail(employee.email)) &&
+                    legacyBookedEmployeeEmails.has(
+                        normalizeEmail(employee.email)
+                    ))
         );
 
         if (selectedEmployees.length === 0) {
             errors.push("Select at least one employee.");
         }
 
-        if (new Set(duplicateEmails).size > 0) {
+        if (new Set(duplicateEmployeeIds).size > 0) {
             errors.push("The same employee cannot be selected more than once.");
+        }
+
+        if (
+            selectedEmployees.some(
+                (employee) => !normalizeEmployeeId(employee.employeeId)
+            )
+        ) {
+            errors.push("Employee ID is required to complete a booking.");
         }
 
         if (alreadyBookedEmployees.length > 0) {

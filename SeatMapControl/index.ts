@@ -60,12 +60,11 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
         // TEMPORARY PREVIEW MODE: remove after all screens are approved.
         const previewMode = context.parameters.previewMode.raw ?? false;
 
-        this.bookingPagingInitialized = this.initializeDataSetPaging(
+        if (!previewMode) {
+            this.bookingPagingInitialized = this.initializeDataSetPaging(
             context.parameters.seatBookingsDataSet,
             this.bookingPagingInitialized
-        );
-
-        if (!previewMode) {
+            );
             this.employeePagingInitialized = this.initializeDataSetPaging(
                 context.parameters.employeesDataSet,
                 this.employeePagingInitialized
@@ -81,8 +80,17 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
         }
 
         const seatBookings = parseBookingDataSet(
-            context.parameters.seatBookingsDataSet
+        context.parameters.seatBookingsDataSet
         );
+
+        const configuredMaximumPeople =
+        context.parameters.maximumPeoplePerBooking.raw;
+        const maximumPeoplePerBooking =
+        typeof configuredMaximumPeople === "number" &&
+        Number.isFinite(configuredMaximumPeople) &&
+        configuredMaximumPeople > 0
+        ? Math.trunc(configuredMaximumPeople)
+        : 30;
 
         const props: IAppProps = {
             actionResult: parseActionResult(
@@ -108,10 +116,10 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
                 previewMode ||
                 (context.parameters.canCreateBookings.raw ?? false),
             currentUserEmail:
-                context.parameters.currentUserEmail.raw ??
-                (previewMode ? "manager@example.com" : ""),
-            maximumPeoplePerBooking:
-                context.parameters.maximumPeoplePerBooking.raw ?? 30,
+                previewMode
+                    ? "manager@example.com"
+                    : context.parameters.currentUserEmail.raw ?? "",
+            maximumPeoplePerBooking,
             onActionRequest: this.handleActionRequest,
             previewMode,
             seats: previewMode

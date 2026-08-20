@@ -36,6 +36,7 @@ export interface ISeatBooking {
     createdByEmail: string;
     employeeEmail: string;
     employeeId: string;
+    employeeName: string;
     expiresAt?: string;
     floor: string;
     seatKey: string;
@@ -75,7 +76,6 @@ export interface IBookingActionRequest {
         bookingDate: string;
         bookingId?: string;
         bookingKey: string;
-        employeeEmail: string;
         employeeId: string;
         employeeName: string;
         expiresAt?: string;
@@ -112,13 +112,29 @@ export const normalizeDateValue = (value: unknown): string => {
     return typeof value === "string" ? value.slice(0, 10) : "";
 };
 
-export const isActiveBooking = (booking: ISeatBooking): boolean =>
-    booking.status.trim().toLowerCase() !== "cancelled";
+export const isActiveBooking = (booking: ISeatBooking): boolean => {
+    const status = booking.status.trim().toLowerCase();
+
+    if (status === "cancelled") {
+        return false;
+    }
+
+    if (status !== "selected" || !booking.expiresAt) {
+        return true;
+    }
+
+    const expirationTime = Date.parse(booking.expiresAt);
+
+    return Number.isNaN(expirationTime) || expirationTime > Date.now();
+};
 
 export const isSelectedBooking = (booking: ISeatBooking): boolean =>
     booking.status.trim().toLowerCase() === "selected";
 
 export const normalizeEmail = (value: string): string =>
+    value.trim().toLowerCase();
+
+export const normalizeEmployeeId = (value: string): string =>
     value.trim().toLowerCase();
 
 export const createSeatKey = (

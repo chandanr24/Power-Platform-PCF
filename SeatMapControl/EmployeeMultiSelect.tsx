@@ -30,22 +30,25 @@ export class EmployeeMultiSelect extends React.PureComponent<
         const query = this.state.query.trim().toLowerCase();
 
         return query
-            ? this.props.employees
-                  .filter((employee) =>
-                      [employee.name, employee.email, employee.employeeId]
-                          .join(" ")
-                          .toLowerCase()
-                          .includes(query)
-                  )
-                  .slice(0, 8)
-            : [];
+    ? this.props.employees
+          .filter((employee) =>
+              [employee.name, employee.employeeId]
+                  .join(" ")
+                  .toLowerCase()
+                  .includes(query)
+          )
+          .slice(0, 8)
+    : [];
     }
 
     private readonly addEmployee = (employee: IEmployee): void => {
-        const normalizedEmail = employee.email.trim().toLowerCase();
+        const employeeIdentity =
+            employee.employeeId.trim().toLowerCase() ||
+            employee.email.trim().toLowerCase();
         const duplicate = this.props.selectedEmployees.some(
             (selected) =>
-                selected.email.trim().toLowerCase() === normalizedEmail
+                (selected.employeeId.trim().toLowerCase() ||
+                    selected.email.trim().toLowerCase()) === employeeIdentity
         );
 
         if (duplicate) {
@@ -125,11 +128,11 @@ export class EmployeeMultiSelect extends React.PureComponent<
     };
 
     public render(): React.ReactNode {
-        const results = this.getResults();
-        const query = this.state.query.trim();
-        const activeResult = results[this.state.activeResultIndex];
+    const results = this.getResults();
+    const query = this.state.query.trim();
+    const activeResult = results[this.state.activeResultIndex];
 
-        return (
+    return (
             <section className="employee-combo" aria-labelledby="employee-combo-label">
                 <div className="employee-selection-heading">
                     <h2 id="employee-combo-label">Select Employees</h2>
@@ -147,7 +150,7 @@ export class EmployeeMultiSelect extends React.PureComponent<
                         aria-autocomplete="list"
                         aria-controls="employee-search-results"
                         aria-expanded={results.length > 0}
-                        placeholder="Search name, ID, or email"
+                        placeholder="Search employee name or code"
                         role="combobox"
                         type="search"
                         value={this.state.query}
