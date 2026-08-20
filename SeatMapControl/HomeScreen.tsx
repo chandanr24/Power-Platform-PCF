@@ -18,6 +18,7 @@ export interface IHomeScreenProps {
     allocatedHeight: number;
     allocatedWidth: number;
     canCreateBookings: boolean;
+    onCancelBooking: () => void;
     onBookSeat: () => void;
 }
 
@@ -62,8 +63,9 @@ export const NavigationItem: React.FC<INavigationItemProps> = ({
 
 export const Sidebar: React.FC<{
     canCreateBookings: boolean;
+    onCancelBooking: () => void;
     onBookSeat: () => void;
-}> = ({ canCreateBookings, onBookSeat }) => (
+}> = ({ canCreateBookings, onCancelBooking, onBookSeat }) => (
     <aside className="dashboard-sidebar" aria-label="Primary navigation">
         <AvanadeLogo
             className="dashboard-brand"
@@ -81,7 +83,7 @@ export const Sidebar: React.FC<{
             />
             <NavigationItem icon={BookRoomIcon} label="Book Room" />
             <NavigationItem icon={BookingsIcon} label="My Bookings" />
-            <NavigationItem icon={CancelIcon} label="Cancel Booking" />
+            <NavigationItem icon={CancelIcon} label="Cancel Booking" onClick={onCancelBooking} />
             <NavigationItem icon={ProfileIcon} label="Profile" />
         </nav>
     </aside>
@@ -129,6 +131,7 @@ export class HomeScreen extends React.PureComponent<IHomeScreenProps> {
             allocatedHeight,
             allocatedWidth,
             canCreateBookings,
+            onCancelBooking,
             onBookSeat
         } = this.props;
         const classes = ["dashboard-control"];
@@ -152,6 +155,7 @@ export class HomeScreen extends React.PureComponent<IHomeScreenProps> {
             <div className={classes.join(" ")} style={controlStyle}>
                 <Sidebar
                     canCreateBookings={canCreateBookings}
+                    onCancelBooking={onCancelBooking}
                     onBookSeat={onBookSeat}
                 />
                 <main className="dashboard-main">
@@ -183,7 +187,7 @@ export class HomeScreen extends React.PureComponent<IHomeScreenProps> {
                             />
                             <QuickAction icon={ActionRoomIcon} label="Book Meeting Room" />
                             <QuickAction icon={ActionBookingsIcon} label="My Bookings" />
-                            <QuickAction icon={CancelIcon} label="Cancel Booking" />
+                            <QuickAction icon={CancelIcon} label="Cancel Booking" onClick={onCancelBooking} />
                         </div>
                     </section>
 

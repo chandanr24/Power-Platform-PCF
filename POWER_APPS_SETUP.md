@@ -61,6 +61,7 @@ required by the PCF dataset.
 | `SeatKey` | Single line of text | required for new virtual bookings |
 | `SeatNumber` | Single line of text | required for new virtual bookings |
 | `Employee` | Person | required, single selection |
+| `EmployeeCode` | Single line of text | required Employee ID snapshot for Cancel Booking filters |
 | `Status` | Choice | `Selected`, `Booked`, `Cancelled` |
 | `Floor` | Choice | required |
 | `Zone` | Choice | required |
@@ -208,12 +209,19 @@ Map directly:
 | `bookingSeatKey` | internal name of `SeatKey` |
 | `bookingSeatNumber` | internal name of `SeatNumber` |
 | `bookingEmployee` | internal name of `Employee` |
+| `bookingEmployeeId` | internal name of `EmployeeCode` |
 | `bookingCreatedBy` | `Author` unless the field selector shows otherwise |
 | `bookingStatus` | internal name of `Status` |
 | `bookingFloor` | internal name of `Floor` |
 | `bookingZone` | internal name of `Zone` |
 | `bookingKey` | internal name of `BookingKey` |
 | `reservationExpiresAt` | internal name of `ReservationExpiresAt` |
+
+Store the employee's `EmpCode` in `EmployeeCode` whenever a SeatBookings row is created; this preserves the Employee ID even if the employee profile later changes.
+
+### Cancel Booking rules
+
+The Cancel Booking screen displays only completed bookings (`Status = "Booked"`) dated today or later. It provides optional Employee Code and Booking Date filters, followed by a single-choice selection. The **Cancel selected booking** button remains disabled until one booking is selected and then requires confirmation before sending the `release` action.
 
 `bookingEmployee` and `bookingCreatedBy` are native `Lookup.Simple` properties.
 React extracts the Person emails. The optional `bookingSeat` lookup is read only
@@ -373,3 +381,19 @@ Run a scheduled Power Automate flow every five minutes:
 Filtering the Canvas UI is not a SharePoint security boundary. Keep Employees
 read-only and grant SeatBookings create/update rights only to approved managers
 and administrators.
+
+## Scrollable selection areas
+
+Set the `cancelBookingVisibleRecordCount` input from a Power Apps formula. It has no code default: a positive value sets the number of Cancel Booking rows visible before the list scrolls; leave it blank to avoid applying a row limit. The Seat Selection screen always scrolls only its virtual-seat grid, so additional virtual seats do not increase the card height.
+
+## Book Seat required fields
+
+In the Book Seat screen, users must explicitly select both Floor and Zone before **View Available Seats** is enabled. Zone remains unavailable until a Floor is selected; no Floor, Zone, or `All Zones` value is preselected.
+
+## Employee search keyboard controls
+
+In the Book Seat employee search, use **Arrow Down** and **Arrow Up** to move through visible results, **Enter** to add the highlighted employee, and **Escape** to close the results.
+
+## Booking date calendar
+
+The Book Seat date calendar closes when the user selects a date, clicks/taps outside it, or moves keyboard focus to another control.

@@ -84,9 +84,35 @@ export const WorkingDayCalendar: React.FC<IWorkingDayCalendarProps> = ({
     value
 }) => {
     const [open, setOpen] = React.useState(false);
+    const rootRef = React.useRef<HTMLDivElement>(null);
     const selected = fromLocalDateValue(value);
     const firstDate = getToday();
     const lastDate = getLastSelectableDay();
+    React.useEffect(() => {
+        if (!open) {
+            return undefined;
+        }
+
+        const closeWhenOutside = (event: Event): void => {
+            const target = event.target;
+
+            if (
+                target instanceof Node &&
+                !rootRef.current?.contains(target)
+            ) {
+                setOpen(false);
+            }
+        };
+
+        document.addEventListener("pointerdown", closeWhenOutside);
+        document.addEventListener("focusin", closeWhenOutside);
+
+        return () => {
+            document.removeEventListener("pointerdown", closeWhenOutside);
+            document.removeEventListener("focusin", closeWhenOutside);
+        };
+    }, [open]);
+
     const handleSelect: SelectSingleEventHandler = (date) => {
         if (date) {
             onChange(toLocalDateValue(date));
@@ -95,7 +121,7 @@ export const WorkingDayCalendar: React.FC<IWorkingDayCalendarProps> = ({
     };
 
     return (
-        <div className="working-day-calendar">
+        <div className="working-day-calendar" ref={rootRef}>
             <button
                 className="working-day-calendar-trigger"
                 id={id}

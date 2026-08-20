@@ -55,16 +55,16 @@ export class BookSeatScreen extends React.PureComponent<
         date:
             this.props.initialSelection?.filters.date ??
             getDefaultBookingDate(),
-        floor:
-            this.props.initialSelection?.filters.floor ??
-            this.props.seats[0]?.floor ??
-            "",
+        floor: this.props.initialSelection?.filters.floor ?? "",
         selectedEmployees:
             this.props.initialSelection?.employees ??
             (this.props.previewMode && this.props.employees[0]
                 ? [this.props.employees[0]]
                 : []),
-        zone: this.props.initialSelection?.filters.zone ?? "All Zones"
+        zone:
+            this.props.initialSelection?.filters.zone === "All Zones"
+                ? ""
+                : this.props.initialSelection?.filters.zone ?? ""
     };
 
     private readonly handleSubmit = (
@@ -188,6 +188,9 @@ export class BookSeatScreen extends React.PureComponent<
         const { allocatedHeight, allocatedWidth } = this.props;
         const classes = ["book-seat-control"];
         const employeeErrors = this.getEmployeeErrors();
+        const dateInvalid =
+            !this.props.previewMode &&
+            !isSelectableBookingDate(this.state.date);
         const availableSeatCount = this.getAvailableSeatCount();
         const floors = Array.from(
             new Set(this.props.seats.map((seat) => seat.floor).filter(Boolean))
@@ -258,7 +261,7 @@ export class BookSeatScreen extends React.PureComponent<
                                         this.setState({
                                             floor: event.currentTarget.value,
                                             floorError: undefined,
-                                            zone: "All Zones"
+                                            zone: ""
                                         })
                                     }
                                 >
@@ -281,6 +284,7 @@ export class BookSeatScreen extends React.PureComponent<
                             <span className="booking-input-wrapper booking-select-wrapper">
                                 <select
                                     aria-invalid={Boolean(this.state.zoneError)}
+                                    disabled={!this.state.floor}
                                     id="booking-zone"
                                     value={this.state.zone}
                                     onChange={(event) =>
@@ -290,7 +294,7 @@ export class BookSeatScreen extends React.PureComponent<
                                         })
                                     }
                                 >
-                                    <option value="All Zones">All Zones</option>
+                                    <option value="">Select a zone</option>
                                     {zones.map((zone) => (
                                         <option key={zone} value={zone}>
                                             {zone}
@@ -325,7 +329,12 @@ export class BookSeatScreen extends React.PureComponent<
                         </section>
 
                         <PrimaryButton
-                            disabled={employeeErrors.length > 0}
+                            disabled={
+                                dateInvalid ||
+                                !this.state.floor ||
+                                !this.state.zone ||
+                                employeeErrors.length > 0
+                            }
                             type="submit"
                         >
                             View Available Seats

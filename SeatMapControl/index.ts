@@ -60,6 +60,11 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
         // TEMPORARY PREVIEW MODE: remove after all screens are approved.
         const previewMode = context.parameters.previewMode.raw ?? false;
 
+        this.bookingPagingInitialized = this.initializeDataSetPaging(
+            context.parameters.seatBookingsDataSet,
+            this.bookingPagingInitialized
+        );
+
         if (!previewMode) {
             this.employeePagingInitialized = this.initializeDataSetPaging(
                 context.parameters.employeesDataSet,
@@ -73,12 +78,11 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
                 context.parameters.seatExceptionsDataSet,
                 this.seatExceptionPagingInitialized
             );
-            this.bookingPagingInitialized = this.initializeDataSetPaging(
-                context.parameters.seatBookingsDataSet,
-                this.bookingPagingInitialized
-            );
-
         }
+
+        const seatBookings = parseBookingDataSet(
+            context.parameters.seatBookingsDataSet
+        );
 
         const props: IAppProps = {
             actionResult: parseActionResult(
@@ -86,9 +90,7 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
             ),
             allocatedHeight: context.mode.allocatedHeight,
             allocatedWidth: context.mode.allocatedWidth,
-            bookings: previewMode
-                ? []
-                : parseBookingDataSet(context.parameters.seatBookingsDataSet),
+            bookings: seatBookings,
             employees: previewMode
                 ? previewEmployees
                 : parseEmployeeDataSet(context.parameters.employeesDataSet),
@@ -100,13 +102,14 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
             canBookForAnyone:
                 previewMode ||
                 (context.parameters.canBookForAnyone.raw ?? false),
+            cancelBookingVisibleRecordCount:
+                context.parameters.cancelBookingVisibleRecordCount.raw ?? undefined,
             canCreateBookings:
                 previewMode ||
                 (context.parameters.canCreateBookings.raw ?? false),
             currentUserEmail:
-                previewMode
-                    ? "manager@example.com"
-                    : context.parameters.currentUserEmail.raw ?? "",
+                context.parameters.currentUserEmail.raw ??
+                (previewMode ? "manager@example.com" : ""),
             maximumPeoplePerBooking:
                 context.parameters.maximumPeoplePerBooking.raw ?? 30,
             onActionRequest: this.handleActionRequest,

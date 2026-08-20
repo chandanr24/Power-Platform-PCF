@@ -12,6 +12,7 @@ interface IEmployeeMultiSelectProps {
 }
 
 interface IEmployeeMultiSelectState {
+    activeResultIndex: number;
     duplicateError?: string;
     query: string;
 }
@@ -20,7 +21,25 @@ export class EmployeeMultiSelect extends React.PureComponent<
     IEmployeeMultiSelectProps,
     IEmployeeMultiSelectState
 > {
-    public state: IEmployeeMultiSelectState = { query: "" };
+    public state: IEmployeeMultiSelectState = {
+        activeResultIndex: -1,
+        query: ""
+    };
+
+    private getResults(): IEmployee[] {
+        const query = this.state.query.trim().toLowerCase();
+
+        return query
+            ? this.props.employees
+                  .filter((employee) =>
+                      [employee.name, employee.email, employee.employeeId]
+                          .join(" ")
+                          .toLowerCase()
+                          .includes(query)
+                  )
+                  .slice(0, 8)
+            : [];
+    }
 
     private readonly addEmployee = (employee: IEmployee): void => {
         const normalizedEmail = employee.email.trim().toLowerCase();
@@ -31,6 +50,7 @@ export class EmployeeMultiSelect extends React.PureComponent<
 
         if (duplicate) {
             this.setState({
+                activeResultIndex: -1,
                 duplicateError: `${employee.name} is already selected.`
             });
             return;
@@ -38,13 +58,61 @@ export class EmployeeMultiSelect extends React.PureComponent<
 
         if (this.props.selectedEmployees.length >= this.props.maximum) {
             this.setState({
+                activeResultIndex: -1,
                 duplicateError: `You can select up to ${this.props.maximum} employees for the current availability.`
             });
             return;
         }
 
         this.props.onChange([...this.props.selectedEmployees, employee]);
-        this.setState({ duplicateError: undefined, query: "" });
+        this.setState({
+            activeResultIndex: -1,
+            duplicateError: undefined,
+            query: ""
+        });
+    };
+
+    private readonly handleSearchKeyDown = (
+        event: React.KeyboardEvent<HTMLInputElement>
+    ): void => {
+        const results = this.getResults();
+
+        if (event.key === "Escape") {
+            event.preventDefault();
+            this.setState({ activeResultIndex: -1, query: "" });
+            return;
+        }
+
+        if (results.length === 0) {
+            return;
+        }
+
+        if (event.key === "ArrowDown") {
+            event.preventDefault();
+            this.setState((state) => ({
+                activeResultIndex: Math.min(
+                    state.activeResultIndex + 1,
+                    results.length - 1
+                )
+            }));
+            return;
+        }
+
+        if (event.key === "ArrowUp") {
+            event.preventDefault();
+            this.setState((state) => ({
+                activeResultIndex:
+                    state.activeResultIndex <= 0
+                        ? 0
+                        : state.activeResultIndex - 1
+            }));
+            return;
+        }
+
+        if (event.key === "Enter" && this.state.activeResultIndex >= 0) {
+            event.preventDefault();
+            this.addEmployee(results[this.state.activeResultIndex]);
+        }
     };
 
     private readonly removeEmployee = (employeeId: string): void => {
@@ -57,17 +125,9 @@ export class EmployeeMultiSelect extends React.PureComponent<
     };
 
     public render(): React.ReactNode {
-        const query = this.state.query.trim().toLowerCase();
-        const results = query
-            ? this.props.employees
-                  .filter((employee) =>
-                      [employee.name, employee.email, employee.employeeId]
-                          .join(" ")
-                          .toLowerCase()
-                          .includes(query)
-                  )
-                  .slice(0, 8)
-            : [];
+        const results = this.getResults();
+        const query = this.state.query.trim();
+        const activeResult = results[this.state.activeResultIndex];
 
         return (
             <section className="employee-combo" aria-labelledby="employee-combo-label">
@@ -79,26 +139,47 @@ export class EmployeeMultiSelect extends React.PureComponent<
                 </div>
                 <div className="employee-search-wrapper">
                     <input
+                        aria-activedescendant={
+                            activeResult
+                                ? `employee-result-${activeResult.employeeId}`
+                                : undefined
+                        }
+                        aria-autocomplete="list"
                         aria-controls="employee-search-results"
                         aria-expanded={results.length > 0}
                         placeholder="Search name, ID, or email"
+                        role="combobox"
                         type="search"
                         value={this.state.query}
                         onChange={(event) =>
                             this.setState({
+                                activeResultIndex: -1,
                                 duplicateError: undefined,
                                 query: event.currentTarget.value
                             })
                         }
+                        onKeyDown={this.handleSearchKeyDown}
                     />
                     <SearchIcon aria-hidden="true" focusable="false" />
                 </div>
                 {query ? (
-                    <ul className="employee-search-results" id="employee-search-results">
+                    <ul
+                        className="employee-search-results"
+                        id="employee-search-results"
+                        role="listbox"
+                    >
                         {results.length ? (
-                            results.map((employee) => (
-                                <li key={employee.employeeId}>
+                            results.map((employee, index) => (
+                                <li key={employee.employeeId} role="none">
                                     <button
+                                        aria-selected={index === this.state.activeResultIndex}
+                                        className={
+                                            index === this.state.activeResultIndex
+                                                ? "employee-search-result--active"
+                                                : undefined
+                                        }
+                                        id={`employee-result-${employee.employeeId}`}
+                                        role="option"
                                         type="button"
                                         onClick={() => this.addEmployee(employee)}
                                     >
@@ -108,7 +189,7 @@ export class EmployeeMultiSelect extends React.PureComponent<
                                 </li>
                             ))
                         ) : (
-                            <li className="employee-no-results">
+                            <li className="employee-no-results" role="option">
                                 No matching employees
                             </li>
                         )}

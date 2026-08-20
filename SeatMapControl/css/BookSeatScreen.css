@@ -645,3 +645,7 @@
     min-height: 100%;
     padding-block: 20px;
 }
+.employee-search-results .employee-search-result--active {
+    background: #fff1e8;
+    outline: 0;
+}

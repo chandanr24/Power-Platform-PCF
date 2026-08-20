@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { BookSeatScreen } from "./BookSeatScreen";
 import { BookingConfirmationScreen } from "./BookingConfirmationScreen";
+import { CancelBookingScreen } from "./CancelBookingScreen";
 import {
     IBookingActionRequest,
     IBookingActionResult,
@@ -23,6 +24,7 @@ export interface IAppProps {
     bookings: ISeatBooking[];
     canBookForAnyone: boolean;
     canCreateBookings: boolean;
+    cancelBookingVisibleRecordCount?: number;
     currentUserEmail: string;
     employees: IEmployee[];
     exceptions: ISeatException[];
@@ -37,7 +39,7 @@ interface IAppState {
     bookingSelection?: IBookingSelection;
     confirmedAssignments?: ISeatAssignment[];
     previewActionResult?: IBookingActionResult;
-    screen: "home" | "bookSeat" | "seatSelection" | "confirmation";
+    screen: "home" | "bookSeat" | "seatSelection" | "confirmation" | "cancelBooking";
 }
 
 export class App extends React.PureComponent<IAppProps, IAppState> {
@@ -56,6 +58,10 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
 
     private readonly handleBookSeat = (): void => {
         this.setState({ screen: "bookSeat" });
+    };
+
+    private readonly handleCancelBooking = (): void => {
+        this.setState({ screen: "cancelBooking" });
     };
 
     private readonly handleBackToHome = (): void => {
@@ -127,6 +133,7 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
             bookings,
             canBookForAnyone,
             canCreateBookings,
+            cancelBookingVisibleRecordCount,
             currentUserEmail,
             employees,
             exceptions,
@@ -204,11 +211,16 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
                 );
             }
 
+            if (this.state.screen === "cancelBooking") {
+                return <CancelBookingScreen allocatedHeight={allocatedHeight} allocatedWidth={allocatedWidth} bookings={bookings} currentUserEmail={currentUserEmail} visibleRecordCount={cancelBookingVisibleRecordCount} onActionRequest={this.handleActionRequest} onBack={this.handleBackToHome} />;
+            }
+
             return (
                 <HomeScreen
                     allocatedHeight={allocatedHeight}
                     allocatedWidth={allocatedWidth}
                     canCreateBookings={canCreateBookings}
+                    onCancelBooking={this.handleCancelBooking}
                     onBookSeat={this.handleBookSeat}
                 />
             );

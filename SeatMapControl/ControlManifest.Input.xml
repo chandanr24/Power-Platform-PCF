@@ -6,6 +6,7 @@
     <property name="canCreateBookings" display-name-key="Can_Create_Bookings" description-key="Whether the current user may create seat bookings" of-type="TwoOptions" usage="input" required="false" />
     <property name="canBookForAnyone" display-name-key="Can_Book_For_Anyone" description-key="Whether the current user may select any employee" of-type="TwoOptions" usage="input" required="false" />
     <property name="maximumPeoplePerBooking" display-name-key="Maximum_People_Per_Booking" description-key="Maximum employees allowed in one booking" of-type="Whole.None" usage="input" required="false" />
+    <property name="cancelBookingVisibleRecordCount" display-name-key="Cancel_Booking_Visible_Record_Count" description-key="Number of Cancel Booking rows visible before scrolling; set from Power Apps" of-type="Whole.None" usage="input" required="false" />
     <property name="actionResultJson" display-name-key="Action_Result_JSON" description-key="Result returned by Canvas after handling the latest action request" of-type="Multiple" usage="input" required="false" />
     <property name="actionRequestJson" display-name-key="Action_Request_JSON" description-key="Booking action requested by the React control" of-type="Multiple" usage="output" required="false" />
     <property name="actionSequence" display-name-key="Action_Sequence" description-key="Incrementing value used to trigger the Canvas OnChange formula" of-type="Whole.None" usage="output" required="false" />
@@ -56,6 +57,7 @@
       <property-set name="bookingSeatKey" display-name-key="Booking_Seat_Key" description-key="Stable floor-zone-seat key for a virtual seat" of-type="SingleLine.Text" usage="bound" required="true" />
       <property-set name="bookingSeatNumber" display-name-key="Booking_Seat_Number" description-key="Displayed workstation number snapshot" of-type="SingleLine.Text" usage="bound" required="true" />
       <property-set name="bookingEmployee" display-name-key="Booking_Employee" description-key="Native SharePoint Employee Person column" of-type="Lookup.Simple" usage="bound" required="true" />
+      <property-set name="bookingEmployeeId" display-name-key="Booking_Employee_ID" description-key="EmployeeCode snapshot used for booking filters" of-type="SingleLine.Text" usage="bound" required="true" />
       <property-set name="bookingCreatedBy" display-name-key="Booking_Created_By" description-key="Native SharePoint Created By Person column" of-type="Lookup.Simple" usage="bound" required="true" />
       <property-set name="bookingStatus" display-name-key="Booking_Status" description-key="Booking status choice" of-type="OptionSet" usage="bound" required="true" />
       <property-set name="bookingFloor" display-name-key="Booking_Floor" description-key="Floor snapshot choice" of-type="OptionSet" usage="bound" required="true" />
@@ -70,6 +72,7 @@
       <css path="css/BookSeatScreen.css" order="3" />
       <css path="css/SeatSelectionScreen.css" order="4" />
       <css path="css/BookingConfirmationScreen.css" order="5" />
+      <css path="css/CancelBookingScreen.css" order="6" />
       <platform-library name="React" version="16.14.0" />
       <platform-library name="Fluent" version="9.46.2" />
       <!-- UNCOMMENT TO ADD MORE RESOURCES

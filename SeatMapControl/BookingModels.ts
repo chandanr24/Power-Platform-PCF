@@ -35,6 +35,7 @@ export interface ISeatBooking {
     bookingKey: string;
     createdByEmail: string;
     employeeEmail: string;
+    employeeId: string;
     expiresAt?: string;
     floor: string;
     seatKey: string;

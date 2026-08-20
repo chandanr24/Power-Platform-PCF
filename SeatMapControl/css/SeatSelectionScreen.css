@@ -97,7 +97,10 @@
 
 .seat-grid-scroll {
     width: 100%;
+    min-height: 0;
+    max-height: min(320px, 42vh);
     overflow-x: auto;
+    overflow-y: auto;
     padding-block: 8px 16px;
 }
 
