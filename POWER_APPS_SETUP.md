@@ -233,7 +233,7 @@ Store the employee's `EmpCode` in `EmployeeCode` whenever a SeatBookings row is 
 
 ### Cancel Booking rules
 
-The Cancel Booking screen displays only completed bookings (`Status = "Booked"`) dated today or later. It provides optional Employee Code and Booking Date filters, followed by a single-choice selection. The **Cancel selected booking** button remains disabled until one booking is selected and then requires confirmation before sending the `release` action.
+The Cancel Booking screen displays only completed bookings (`Status = "Booked"`) dated today or later. It provides optional Employee Code or Employee Name and Booking Date filters, followed by a single-choice selection. The **Cancel selected booking** button remains disabled until one booking is selected and then requires confirmation before sending the `release` action.
 
 `bookingEmployee` and `bookingCreatedBy` are native `Lookup.Simple` properties.
 `bookingEmployeeId` is the EmpCode snapshot used for active duplicate-booking
@@ -442,3 +442,5 @@ In the Book Seat employee search, use **Arrow Down** and **Arrow Up** to move th
 ## Booking date calendar
 
 The Book Seat date calendar closes when the user selects a date, clicks/taps outside it, or moves keyboard focus to another control.
+
+Cancel Booking resolves EmployeeName from the Employees dataset using the booking EmployeeCode; it displays the name and allows searches by either code or name.

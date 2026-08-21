@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest>
 
-  <control namespace="SeatBooking" constructor="SeatMapControl" version="1.3.19" display-name-key="SeatMapControl" description-key="SeatMapControl description" control-type="virtual" >
+  <control namespace="SeatBooking" constructor="SeatMapControl" version="1.3.21" display-name-key="SeatMapControl" description-key="SeatMapControl description" control-type="virtual" >
     <property name="previewMode" display-name-key="Preview_Mode" description-key="Temporary local screen preview without Canvas or SharePoint writes; keep false in production" of-type="TwoOptions" usage="input" required="false" />
     <property name="currentUserEmail" display-name-key="Current_User_Email" description-key="Email of the signed-in Canvas app user" of-type="SingleLine.Text" usage="input" required="false" />
     <property name="canCreateBookings" display-name-key="Can_Create_Bookings" description-key="Whether the current user may create seat bookings" of-type="TwoOptions" usage="input" required="false" />

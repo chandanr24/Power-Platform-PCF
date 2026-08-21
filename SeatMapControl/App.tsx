@@ -218,7 +218,7 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
             }
 
             if (this.state.screen === "cancelBooking") {
-                return <CancelBookingScreen allocatedHeight={allocatedHeight} allocatedWidth={allocatedWidth} bookings={bookings} currentUserEmail={currentUserEmail} visibleRecordCount={cancelBookingVisibleRecordCount} onActionRequest={this.handleActionRequest} onBack={this.handleBackToHome} />;
+                return <CancelBookingScreen allocatedHeight={allocatedHeight} allocatedWidth={allocatedWidth} bookings={bookings} currentUserEmail={currentUserEmail} employees={employees} visibleRecordCount={cancelBookingVisibleRecordCount} onActionRequest={this.handleActionRequest} onBack={this.handleBackToHome} />;
             }
 
             return (

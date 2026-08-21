@@ -3,6 +3,7 @@ import * as React from "react";
 import { BackButton } from "./BackButton";
 import {
     IBookingActionRequest,
+    IEmployee,
     ISeatBooking
 } from "./BookingModels";
 
@@ -11,6 +12,7 @@ export interface ICancelBookingScreenProps {
     allocatedWidth: number;
     bookings: ISeatBooking[];
     currentUserEmail: string;
+    employees: IEmployee[];
     visibleRecordCount?: number;
     onActionRequest: (request: IBookingActionRequest) => void;
     onBack: () => void;
@@ -31,6 +33,7 @@ export const CancelBookingScreen: React.FC<ICancelBookingScreenProps> = ({
     allocatedHeight,
     allocatedWidth,
     bookings,
+    employees,
     visibleRecordCount,
     onActionRequest,
     onBack
@@ -40,13 +43,32 @@ export const CancelBookingScreen: React.FC<ICancelBookingScreenProps> = ({
     const [selectedBookingKey, setSelectedBookingKey] = React.useState("");
     const [confirming, setConfirming] = React.useState(false);
     const today = getToday();
+    const employeeNames = React.useMemo(() => {
+        const names = new Map<string, string>();
+
+        employees.forEach((employee) => {
+            const employeeCode = employee.employeeId.trim().toLowerCase();
+
+            if (employeeCode) {
+                names.set(employeeCode, employee.name);
+            }
+        });
+
+        return names;
+    }, [employees]);
+    const getEmployeeName = (booking: ISeatBooking): string =>
+        employeeNames.get(booking.employeeId.trim().toLowerCase()) ??
+        "Employee name unavailable";
     const selectedBooking = bookings.find(
         (booking) => booking.bookingKey === selectedBookingKey
     );
+    const employeeQuery = employeeId.trim().toLowerCase();
     const items = bookings.filter((booking) =>
         isConfirmedBooking(booking) &&
         booking.bookingDate >= today &&
-        (!employeeId || booking.employeeId.toLowerCase().includes(employeeId.trim().toLowerCase())) &&
+        (!employeeQuery ||
+            booking.employeeId.toLowerCase().includes(employeeQuery) ||
+            getEmployeeName(booking).toLowerCase().includes(employeeQuery)) &&
         (!bookingDate || booking.bookingDate === bookingDate)
     );
     const selectionListStyle: React.CSSProperties | undefined =
@@ -102,11 +124,11 @@ export const CancelBookingScreen: React.FC<ICancelBookingScreenProps> = ({
                 </header>
                 <div className="cancel-booking-filters">
                     <label>
-                        Employee Code
+                        Employee Code or Name
                         <input
                             type="search"
                             value={employeeId}
-                            placeholder="Search employee code"
+                            placeholder="Search employee code or name"
                             onChange={(event) => {
                                 setEmployeeId(event.target.value);
                                 handleFiltersChanged();
@@ -139,7 +161,7 @@ export const CancelBookingScreen: React.FC<ICancelBookingScreenProps> = ({
                                 />
                                 <span>
                                     <strong>{booking.seatNumber}</strong>
-                                    <small>{booking.employeeId} · {booking.bookingDate} · {booking.floor} · {booking.zone}</small>
+                                    <small>{getEmployeeName(booking)} · {booking.employeeId} · {booking.bookingDate} · {booking.floor} · {booking.zone}</small>
                                 </span>
                             </label>
                         ))}
