@@ -335,48 +335,110 @@ export const parseSeatExceptionDataSet = (
         }))
         .filter((exception) => exception.seatKey && exception.status);
 
-export const parseBookingDataSet = (dataSet: DataSet): ISeatBooking[] =>
+interface BookingColumnAliases {
+    bookingDate: string;
+    bookingEmployee: string;
+    bookingEmployeeId: string;
+    bookingFloor: string;
+    bookingId: string;
+    bookingKey: string;
+    bookingManager: string;
+    bookingSeat: string;
+    bookingSeatKey: string;
+    bookingSeatNumber: string;
+    bookingStatus: string;
+    bookingTeamId: string;
+    bookingTeamName: string;
+    bookingZone: string;
+    createdBy: string;
+    reservationExpiresAt: string;
+};
+
+const parseBookingDataSetWithAliases = (
+    dataSet: DataSet,
+    aliases: BookingColumnAliases
+): ISeatBooking[] =>
     dataSet.sortedRecordIds
         .map((id) => dataSet.records[id])
         .filter(Boolean)
         .map((record) => {
-            const bookingKey = getText(record, "bookingKey");
+            const bookingKey = getText(record, aliases.bookingKey);
             const bookingKeyParts = bookingKey.split("|");
-            const floor = getChoiceText(record, "bookingFloor");
-            const zone = getChoiceText(record, "bookingZone");
+            const floor = getChoiceText(record, aliases.bookingFloor);
+            const zone = getChoiceText(record, aliases.bookingZone);
             const seatNumber =
-                getText(record, "bookingSeatNumber") ||
-                getLookupText(record, "bookingSeat") ||
+                getText(record, aliases.bookingSeatNumber) ||
+                getLookupText(record, aliases.bookingSeat) ||
                 bookingKeyParts[3] ||
                 "";
             const seatKey =
-                getText(record, "bookingSeatKey").toLowerCase() ||
+                getText(record, aliases.bookingSeatKey).toLowerCase() ||
                 createSeatKey(floor, zone, seatNumber);
 
             return {
-                bookingId: getText(record, "bookingId"),
-                bookingDate: normalizeDateValue(
-                    record.getValue("bookingDate")
-                ),
+                bookingId: getText(record, aliases.bookingId),
+                bookingDate: normalizeDateValue(record.getValue(aliases.bookingDate)),
                 bookingKey,
-                createdByEmail: getPersonEmail(record, "bookingCreatedBy"),
-                employeeEmail: getPersonEmail(record, "bookingEmployee"),
-                employeeId: getText(record, "bookingEmployeeId"),
-                employeeName: getLookupText(record, "bookingEmployee"),
-                expiresAt:
-                    getDateTime(record, "reservationExpiresAt") || undefined,
+                createdByEmail: getPersonEmail(record, aliases.createdBy),
+                employeeEmail: getPersonEmail(record, aliases.bookingEmployee),
+                employeeId: getText(record, aliases.bookingEmployeeId),
+                employeeName: getLookupText(record, aliases.bookingEmployee),
+                expiresAt: getDateTime(record, aliases.reservationExpiresAt) || undefined,
                 floor,
-                managerEmail: getMappedPersonEmail(dataSet, record, "bookingManagerEmail"),
+                managerEmail: getMappedPersonEmail(dataSet, record, aliases.bookingManager),
                 seatKey,
                 seatNumber,
-                status: getChoiceText(record, "bookingStatus"),
-                teamId: getMappedText(dataSet, record, "bookingTeamId"),
-                teamName: getMappedText(dataSet, record, "bookingTeamName"),
+                status: getChoiceText(record, aliases.bookingStatus),
+                teamId: getMappedText(dataSet, record, aliases.bookingTeamId),
+                teamName: getMappedText(dataSet, record, aliases.bookingTeamName),
                 zone
             };
         })
         .filter((booking) => booking.bookingDate && booking.seatKey);
 
+const activeBookingAliases: BookingColumnAliases = {
+    bookingDate: "bookingDate",
+    bookingEmployee: "bookingEmployee",
+    bookingEmployeeId: "bookingEmployeeId",
+    bookingFloor: "bookingFloor",
+    bookingId: "bookingId",
+    bookingKey: "bookingKey",
+    bookingManager: "bookingManagerEmail",
+    bookingSeat: "bookingSeat",
+    bookingSeatKey: "bookingSeatKey",
+    bookingSeatNumber: "bookingSeatNumber",
+    bookingStatus: "bookingStatus",
+    bookingTeamId: "bookingTeamId",
+    bookingTeamName: "bookingTeamName",
+    bookingZone: "bookingZone",
+    createdBy: "bookingCreatedBy",
+    reservationExpiresAt: "reservationExpiresAt"
+};
+
+const historyBookingAliases: BookingColumnAliases = {
+    bookingDate: "historyBookingDate",
+    bookingEmployee: "historyBookingEmployee",
+    bookingEmployeeId: "historyBookingEmployeeId",
+    bookingFloor: "historyBookingFloor",
+    bookingId: "historyBookingId",
+    bookingKey: "historyBookingKey",
+    bookingManager: "historyBookingManager",
+    bookingSeat: "historyBookingSeat",
+    bookingSeatKey: "historyBookingSeatKey",
+    bookingSeatNumber: "historyBookingSeatNumber",
+    bookingStatus: "historyBookingStatus",
+    bookingTeamId: "historyBookingPractice",
+    bookingTeamName: "historyBookingPracticeName",
+    bookingZone: "historyBookingZone",
+    createdBy: "historyBookingCreatedBy",
+    reservationExpiresAt: "historyReservationExpiresAt"
+};
+
+export const parseBookingDataSet = (dataSet: DataSet): ISeatBooking[] =>
+    parseBookingDataSetWithAliases(dataSet, activeBookingAliases);
+
+export const parseMyBookingsDataSet = (dataSet: DataSet): ISeatBooking[] =>
+    parseBookingDataSetWithAliases(dataSet, historyBookingAliases);
 export const parseBookingAccessDataSet = (dataSet: DataSet): IBookingAccess[] =>
     dataSet.sortedRecordIds
         .map((id) => dataSet.records[id])
