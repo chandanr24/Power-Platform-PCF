@@ -1,6 +1,7 @@
 import {
     createSeatKey,
     IEmployee,
+    IBookingAccess,
     ISeat,
     ISeatBooking,
     ISeatException,
@@ -244,7 +245,9 @@ export const parseEmployeeDataSet = (dataSet: DataSet): IEmployee[] =>
                 record,
                 "managerPerson"
             ),
-            name: getMappedText(dataSet, record, "employeeName")
+            name: getMappedText(dataSet, record, "employeeName"),
+            teamId: getMappedText(dataSet, record, "employeeTeamId"),
+            teamName: getMappedText(dataSet, record, "employeeTeamName")
         }))
         .filter((employee) => employee.employeeId && employee.name);
 
@@ -363,10 +366,24 @@ export const parseBookingDataSet = (dataSet: DataSet): ISeatBooking[] =>
                 expiresAt:
                     getDateTime(record, "reservationExpiresAt") || undefined,
                 floor,
+                managerEmail: getMappedPersonEmail(dataSet, record, "bookingManagerEmail"),
                 seatKey,
                 seatNumber,
                 status: getChoiceText(record, "bookingStatus"),
+                teamId: getMappedText(dataSet, record, "bookingTeamId"),
+                teamName: getMappedText(dataSet, record, "bookingTeamName"),
                 zone
             };
         })
         .filter((booking) => booking.bookingDate && booking.seatKey);
+
+export const parseBookingAccessDataSet = (dataSet: DataSet): IBookingAccess[] =>
+    dataSet.sortedRecordIds
+        .map((id) => dataSet.records[id])
+        .filter(Boolean)
+        .map((record) => ({
+            role: getChoiceText(record, "accessRole"),
+            teamId: getMappedText(dataSet, record, "accessTeamId"),
+            userEmail: getMappedPersonEmail(dataSet, record, "accessUser")
+        }))
+        .filter((access) => access.role && access.userEmail);

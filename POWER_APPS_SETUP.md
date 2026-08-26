@@ -444,3 +444,71 @@ In the Book Seat employee search, use **Arrow Down** and **Arrow Up** to move th
 The Book Seat date calendar closes when the user selects a date, clicks/taps outside it, or moves keyboard focus to another control.
 
 Cancel Booking resolves EmployeeName from the Employees dataset using the booking EmployeeCode; it displays the name and allows searches by either code or name.
+
+## My Bookings history, access, and pagination
+
+My Bookings is a read-only booking-history screen. It displays all booking
+statuses and dates that are supplied to its dataset, then applies the access
+scope before the user-facing filters:
+
+- Employee: only their own booking history.
+- Manager: only direct reporters' history.
+- Practice Lead: only the Team IDs assigned to them.
+- HR: all booking history.
+
+This browser-side scope improves the screen experience but is not a security
+boundary. Configure SharePoint or Dataverse permissions and a server-filtered
+`myBookingsDataSet_Items` formula so users are not sent unauthorized records.
+Index SeatBookings `BookingDate`, `EmployeeId`, `Manager`, and `Practice`.
+
+### Required history snapshots
+
+Add these immutable snapshots to SeatBookings and populate them when each
+booking is reserved. Existing records must be backfilled before historical
+manager or team filtering can be complete.
+
+| Display name | Type | Purpose |
+| --- | --- | --- |
+| `Manager` | Person, single selection | manager identity at booking time |
+| `TeamId` | Single line of text | stable team identifier at booking time |
+| `TeamName` | Single line of text | optional display label at booking time |
+
+Add optional `TeamId` and `TeamName` columns to Employees. Map them as
+`employeeTeamId` and `employeeTeamName`.
+
+### BookingAccess list
+
+Create one access record per elevated assignment:
+
+| Display name | Type | Values |
+| --- | --- | --- |
+| `User` | Person, single selection | the HR user or Practice Lead |
+| `Role` | Choice | `HR` or `Practice Lead` |
+| `TeamId` | Single line of text | required for Practice Lead; blank for HR |
+
+A Practice Lead with several teams needs one `BookingAccess` row for each TeamId.
+No access row is required for an employee or direct manager.
+
+### PCF mappings
+
+Map `myBookingsDataSet_Items` to the SeatBookings source that contains booking
+history. Map the property sets with the same internal names as the
+`seatBookingsDataSet_Items` mapping, including `bookingManagerEmail` (map to the `Manager` Person column),
+`bookingTeamId`, and `bookingTeamName`.
+
+Map `bookingAccessDataSet_Items` to BookingAccess:
+
+| PCF property | SharePoint internal name |
+| --- | --- |
+| `accessUser` | internal name of `User` |
+| `accessRole` | internal name of `Role` |
+| `accessTeamId` | internal name of `TeamId` |
+
+Set `myBookingsPageSize` with a Power Fx formula such as `10`. It has no PCF
+fallback value: leave it blank to display the supplied, authorized results in
+one page; set a positive number to enable the Previous/Next pager.
+
+When creating a SeatBookings record, resolve the employee by EmpCode and write
+`Manager`, and `Practice` together with the existing EmployeeId
+snapshot. Do not derive these historic values from a later employee profile
+change.

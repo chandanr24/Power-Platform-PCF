@@ -10,19 +10,25 @@ export const previewEmployees: IEmployee[] = [
         employeeId: "EMP-1001",
         email: "alex.johnson@example.com",
         managerEmail: "manager@example.com",
-        name: "Alex Johnson"
+        name: "Alex Johnson",
+        teamId: "preview-team",
+        teamName: "Preview Team"
     },
     {
         employeeId: "EMP-1002",
         email: "priya.shah@example.com",
         managerEmail: "manager@example.com",
-        name: "Priya Shah"
+        name: "Priya Shah",
+        teamId: "preview-team",
+        teamName: "Preview Team"
     },
     {
         employeeId: "EMP-1003",
         email: "daniel.lee@example.com",
         managerEmail: "manager@example.com",
-        name: "Daniel Lee"
+        name: "Daniel Lee",
+        teamId: "preview-team",
+        teamName: "Preview Team"
     }
 ];
 

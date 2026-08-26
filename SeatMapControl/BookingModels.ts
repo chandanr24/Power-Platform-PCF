@@ -3,6 +3,14 @@ export interface IEmployee {
     email: string;
     managerEmail: string;
     name: string;
+    teamId: string;
+    teamName: string;
+}
+
+export interface IBookingAccess {
+    role: string;
+    teamId: string;
+    userEmail: string;
 }
 
 export interface ISeat {
@@ -42,6 +50,9 @@ export interface ISeatBooking {
     seatKey: string;
     seatNumber: string;
     status: string;
+    managerEmail: string;
+    teamId: string;
+    teamName: string;
     zone: string;
 }
 

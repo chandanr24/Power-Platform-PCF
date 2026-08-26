@@ -19,6 +19,7 @@ export interface IHomeScreenProps {
     allocatedWidth: number;
     canCreateBookings: boolean;
     onCancelBooking: () => void;
+    onMyBookings: () => void;
     onBookSeat: () => void;
 }
 
@@ -64,8 +65,9 @@ export const NavigationItem: React.FC<INavigationItemProps> = ({
 export const Sidebar: React.FC<{
     canCreateBookings: boolean;
     onCancelBooking: () => void;
+    onMyBookings: () => void;
     onBookSeat: () => void;
-}> = ({ canCreateBookings, onCancelBooking, onBookSeat }) => (
+}> = ({ canCreateBookings, onCancelBooking, onMyBookings, onBookSeat }) => (
     <aside className="dashboard-sidebar" aria-label="Primary navigation">
         <AvanadeLogo
             className="dashboard-brand"
@@ -82,7 +84,7 @@ export const Sidebar: React.FC<{
                 onClick={onBookSeat}
             />
             <NavigationItem icon={BookRoomIcon} label="Book Room" />
-            <NavigationItem icon={BookingsIcon} label="My Bookings" />
+            <NavigationItem icon={BookingsIcon} label="My Bookings" onClick={onMyBookings} />
             <NavigationItem icon={CancelIcon} label="Cancel Booking" onClick={onCancelBooking} />
             <NavigationItem icon={ProfileIcon} label="Profile" />
         </nav>
@@ -132,6 +134,7 @@ export class HomeScreen extends React.PureComponent<IHomeScreenProps> {
             allocatedWidth,
             canCreateBookings,
             onCancelBooking,
+            onMyBookings,
             onBookSeat
         } = this.props;
         const classes = ["dashboard-control"];
@@ -156,6 +159,7 @@ export class HomeScreen extends React.PureComponent<IHomeScreenProps> {
                 <Sidebar
                     canCreateBookings={canCreateBookings}
                     onCancelBooking={onCancelBooking}
+                    onMyBookings={onMyBookings}
                     onBookSeat={onBookSeat}
                 />
                 <main className="dashboard-main">
@@ -186,7 +190,7 @@ export class HomeScreen extends React.PureComponent<IHomeScreenProps> {
                                 onClick={onBookSeat}
                             />
                             <QuickAction icon={ActionRoomIcon} label="Book Meeting Room" />
-                            <QuickAction icon={ActionBookingsIcon} label="My Bookings" />
+                            <QuickAction icon={ActionBookingsIcon} label="My Bookings" onClick={onMyBookings} />
                             <QuickAction icon={CancelIcon} label="Cancel Booking" onClick={onCancelBooking} />
                         </div>
                     </section>

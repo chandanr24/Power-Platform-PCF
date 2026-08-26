@@ -6,6 +6,7 @@ import {
 } from "./BookingModels";
 import {
     parseBookingDataSet,
+    parseBookingAccessDataSet,
     parseEmployeeDataSet,
     parseSeatExceptionDataSet,
     parseSeatRangeDataSet
@@ -27,6 +28,8 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
     private seatRangePagingInitialized = false;
     private seatExceptionPagingInitialized = false;
     private bookingPagingInitialized = false;
+    private myBookingsPagingInitialized = false;
+    private bookingAccessPagingInitialized = false;
 
     /**
      * Empty constructor.
@@ -65,6 +68,14 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
             context.parameters.seatBookingsDataSet,
             this.bookingPagingInitialized
             );
+            this.myBookingsPagingInitialized = this.initializeDataSetPaging(
+                context.parameters.myBookingsDataSet,
+                this.myBookingsPagingInitialized
+            );
+            this.bookingAccessPagingInitialized = this.initializeDataSetPaging(
+                context.parameters.bookingAccessDataSet,
+                this.bookingAccessPagingInitialized
+            );
             this.employeePagingInitialized = this.initializeDataSetPaging(
                 context.parameters.employeesDataSet,
                 this.employeePagingInitialized
@@ -98,7 +109,10 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
             ),
             allocatedHeight: context.mode.allocatedHeight,
             allocatedWidth: context.mode.allocatedWidth,
+            bookingAccess: previewMode ? [] : parseBookingAccessDataSet(context.parameters.bookingAccessDataSet),
             bookings: seatBookings,
+            myBookings: previewMode ? seatBookings : parseBookingDataSet(context.parameters.myBookingsDataSet),
+            myBookingsPageSize: context.parameters.myBookingsPageSize.raw ?? undefined,
             employees: previewMode
                 ? previewEmployees
                 : parseEmployeeDataSet(context.parameters.employeesDataSet),
