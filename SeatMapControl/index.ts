@@ -7,6 +7,7 @@ import {
 import {
     parseBookingDataSet,
     parseBookingAccessDataSet,
+    parseMyBookingsDataSet,
     parseEmployeeDataSet,
     parseSeatExceptionDataSet,
     parseSeatRangeDataSet
@@ -111,7 +112,7 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
             allocatedWidth: context.mode.allocatedWidth,
             bookingAccess: previewMode ? [] : parseBookingAccessDataSet(context.parameters.bookingAccessDataSet),
             bookings: seatBookings,
-            myBookings: previewMode ? seatBookings : parseBookingDataSet(context.parameters.myBookingsDataSet),
+            myBookings: previewMode ? seatBookings : parseMyBookingsDataSet(context.parameters.myBookingsDataSet),
             myBookingsPageSize: context.parameters.myBookingsPageSize.raw ?? undefined,
             employees: previewMode
                 ? previewEmployees

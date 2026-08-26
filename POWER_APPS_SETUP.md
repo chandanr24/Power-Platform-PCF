@@ -448,12 +448,12 @@ Cancel Booking resolves EmployeeName from the Employees dataset using the bookin
 ## My Bookings history, access, and pagination
 
 My Bookings is a read-only booking-history screen. It displays all booking
-statuses and dates that are supplied to its dataset, then applies the access
-scope before the user-facing filters:
+statuses and dates supplied to its dataset, then applies access scope before
+user-facing filters:
 
 - Employee: only their own booking history.
 - Manager: only direct reporters' history.
-- Practice Lead: only the Team IDs assigned to them.
+- Practice Lead: only the Practice values assigned to them.
 - HR: all booking history.
 
 This browser-side scope improves the screen experience but is not a security
@@ -463,18 +463,17 @@ Index SeatBookings `BookingDate`, `EmployeeId`, `Manager`, and `Practice`.
 
 ### Required history snapshots
 
-Add these immutable snapshots to SeatBookings and populate them when each
-booking is reserved. Existing records must be backfilled before historical
-manager or team filtering can be complete.
+Add the `Practice` Choice and `Manager` Person columns to SeatBookings and
+populate them when each booking is reserved. Existing records must be
+backfilled before historical manager or Practice filtering is complete.
 
-| Display name | Type | Purpose |
-| --- | --- | --- |
-| `Manager` | Person, single selection | manager identity at booking time |
-| `TeamId` | Single line of text | stable team identifier at booking time |
-| `TeamName` | Single line of text | optional display label at booking time |
+The `Practice` choices must match the Employees Practice choices. The Manager
+Person value should be the manager at booking time so later profile changes do
+not rewrite history.
 
-Add optional `TeamId` and `TeamName` columns to Employees. Map them as
-`employeeTeamId` and `employeeTeamName`.
+Add the existing `Practice` Choice column to Employees if it is not already
+present. No TeamId or TeamName SharePoint columns are required; the PCF aliases
+are internal mapping names.
 
 ### BookingAccess list
 
@@ -484,17 +483,34 @@ Create one access record per elevated assignment:
 | --- | --- | --- |
 | `User` | Person, single selection | the HR user or Practice Lead |
 | `Role` | Choice | `HR` or `Practice Lead` |
-| `TeamId` | Single line of text | required for Practice Lead; blank for HR |
+| `Practice` | Choice | required for Practice Lead; blank for HR |
 
-A Practice Lead with several teams needs one `BookingAccess` row for each TeamId.
-No access row is required for an employee or direct manager.
+A Practice Lead with several practices needs one `BookingAccess` row for each
+Practice. No access row is required for an employee or direct manager.
 
 ### PCF mappings
 
 Map `myBookingsDataSet_Items` to the SeatBookings source that contains booking
-history. Map the property sets with the same internal names as the
-`seatBookingsDataSet_Items` mapping, including `bookingManagerEmail` (map to the `Manager` Person column),
-`bookingTeamId`, and `bookingTeamName`.
+history. Use these unique history aliases:
+
+| PCF property | SharePoint internal name |
+| --- | --- |
+| `historyBookingId` | `ID` |
+| `historyBookingDate` | `BookingDate` |
+| `historyBookingEmployee` | `Employee` |
+| `historyBookingEmployeeId` | `EmployeeId` |
+| `historyBookingManager` | `Manager` Person column |
+| `historyBookingPractice` | `Practice` Choice column |
+| `historyBookingSeatKey` | `SeatKey` |
+| `historyBookingSeatNumber` | `SeatNumber` |
+| `historyBookingFloor` | `Floor` |
+| `historyBookingZone` | `Zone` |
+| `historyBookingStatus` | `Status` |
+| `historyBookingKey` | `BookingKey` |
+
+Map the remaining history property sets to the matching SeatBookings columns:
+`historyBookingSeat`, `historyBookingCreatedBy`, and
+`historyReservationExpiresAt`.
 
 Map `bookingAccessDataSet_Items` to BookingAccess:
 
@@ -502,13 +518,11 @@ Map `bookingAccessDataSet_Items` to BookingAccess:
 | --- | --- |
 | `accessUser` | internal name of `User` |
 | `accessRole` | internal name of `Role` |
-| `accessTeamId` | internal name of `TeamId` |
+| `accessTeamId` | internal name of `Practice` |
 
 Set `myBookingsPageSize` with a Power Fx formula such as `10`. It has no PCF
-fallback value: leave it blank to display the supplied, authorized results in
+fallback value: leave it blank to display the supplied authorized results in
 one page; set a positive number to enable the Previous/Next pager.
 
 When creating a SeatBookings record, resolve the employee by EmpCode and write
-`Manager`, and `Practice` together with the existing EmployeeId
-snapshot. Do not derive these historic values from a later employee profile
-change.
+`Manager` and `Practice` together with the existing EmployeeId snapshot.

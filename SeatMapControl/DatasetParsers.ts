@@ -204,6 +204,21 @@ const getMappedText = (
     return "";
 };
 
+const getMappedChoiceText = (
+    dataSet: DataSet,
+    record: ComponentFramework.PropertyHelper.DataSetApi.EntityRecord,
+    propertySetAlias: string
+): string => {
+    for (const columnName of getMappedColumnNames(dataSet, propertySetAlias)) {
+        const value = getChoiceText(record, columnName);
+
+        if (value) {
+            return value;
+        }
+    }
+
+    return "";
+};
 const getMappedPersonEmail = (
     dataSet: DataSet,
     record: ComponentFramework.PropertyHelper.DataSetApi.EntityRecord,
@@ -246,7 +261,7 @@ export const parseEmployeeDataSet = (dataSet: DataSet): IEmployee[] =>
                 "managerPerson"
             ),
             name: getMappedText(dataSet, record, "employeeName"),
-            teamId: getMappedText(dataSet, record, "employeeTeamId"),
+            teamId: getMappedChoiceText(dataSet, record, "employeeTeamId"),
             teamName: getMappedText(dataSet, record, "employeeTeamName")
         }))
         .filter((employee) => employee.employeeId && employee.name);
@@ -389,7 +404,7 @@ const parseBookingDataSetWithAliases = (
                 seatKey,
                 seatNumber,
                 status: getChoiceText(record, aliases.bookingStatus),
-                teamId: getMappedText(dataSet, record, aliases.bookingTeamId),
+                teamId: getMappedChoiceText(dataSet, record, aliases.bookingTeamId),
                 teamName: getMappedText(dataSet, record, aliases.bookingTeamName),
                 zone
             };
@@ -445,7 +460,7 @@ export const parseBookingAccessDataSet = (dataSet: DataSet): IBookingAccess[] =>
         .filter(Boolean)
         .map((record) => ({
             role: getChoiceText(record, "accessRole"),
-            teamId: getMappedText(dataSet, record, "accessTeamId"),
+            teamId: getMappedChoiceText(dataSet, record, "accessTeamId"),
             userEmail: getMappedPersonEmail(dataSet, record, "accessUser")
         }))
         .filter((access) => access.role && access.userEmail);

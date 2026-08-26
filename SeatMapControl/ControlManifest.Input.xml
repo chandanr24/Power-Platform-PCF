@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest>
 
-  <control namespace="SeatBooking" constructor="SeatMapControl" version="1.3.23" display-name-key="SeatMapControl" description-key="SeatMapControl description" control-type="virtual" >
+  <control namespace="SeatBooking" constructor="SeatMapControl" version="1.3.25" display-name-key="SeatMapControl" description-key="SeatMapControl description" control-type="virtual" >
     <property name="previewMode" display-name-key="Preview_Mode" description-key="Temporary local screen preview without Canvas or SharePoint writes; keep false in production" of-type="TwoOptions" usage="input" required="false" />
     <property name="currentUserEmail" display-name-key="Current_User_Email" description-key="Email of the signed-in Canvas app user" of-type="SingleLine.Text" usage="input" required="false" />
     <property name="canCreateBookings" display-name-key="Can_Create_Bookings" description-key="Whether the current user may create seat bookings" of-type="TwoOptions" usage="input" required="false" />
@@ -34,7 +34,7 @@
       <property-set name="employeeName" display-name-key="Employee_Name" description-key="Employee display name" of-type="SingleLine.Text" usage="bound" required="true" />
       <property-set name="employeePerson" display-name-key="Employee_Email" description-key="Optional native SharePoint EmployeeMail Person column for legacy duplicate checks and client-side relationship filtering" of-type="Lookup.Simple" usage="bound" required="false" />
       <property-set name="managerPerson" display-name-key="Manager_Email" description-key="Optional native SharePoint Manager Person column for client-side relationship filtering" of-type="Lookup.Simple" usage="bound" required="false" />
-      <property-set name="employeeTeamId" display-name-key="Employee_Team_ID" description-key="Optional employee team identifier" of-type="SingleLine.Text" usage="bound" required="false" />
+      <property-set name="employeeTeamId" display-name-key="Employee_Team_ID" description-key="Optional employee team identifier" of-type="OptionSet" usage="bound" required="false" />
       <property-set name="employeeTeamName" display-name-key="Employee_Team_Name" description-key="Optional employee team display name" of-type="SingleLine.Text" usage="bound" required="false" />
     </data-set>
     <data-set name="seatRangesDataSet" display-name-key="Seat_Ranges_Dataset">
@@ -69,31 +69,31 @@
       <property-set name="bookingKey" display-name-key="Booking_Key" description-key="Unique date-floor-zone-seat key" of-type="SingleLine.Text" usage="bound" required="true" />
       <property-set name="reservationExpiresAt" display-name-key="Reservation_Expires_At" description-key="Expiration time for Selected reservations" of-type="DateAndTime.DateAndTime" usage="bound" required="true" />
       <property-set name="bookingManagerEmail" display-name-key="Booking_Manager_Email" description-key="Manager Person lookup used to resolve the manager email" of-type="Lookup.Simple" usage="bound" required="false" />
-      <property-set name="bookingTeamId" display-name-key="Booking_Team_ID" description-key="Team identifier snapshot" of-type="SingleLine.Text" usage="bound" required="false" />
+      <property-set name="bookingTeamId" display-name-key="Booking_Team_ID" description-key="Team identifier snapshot" of-type="OptionSet" usage="bound" required="false" />
       <property-set name="bookingTeamName" display-name-key="Booking_Team_Name" description-key="Team display name snapshot" of-type="SingleLine.Text" usage="bound" required="false" />
     </data-set>
     <data-set name="myBookingsDataSet" display-name-key="My_Bookings_Dataset">
-      <property-set name="bookingId" display-name-key="Booking_ID" description-key="SeatBookings record ID" of-type="Whole.None" usage="bound" required="true" />
-      <property-set name="bookingDate" display-name-key="Booking_Date" description-key="Booking date" of-type="DateAndTime.DateAndTime" usage="bound" required="true" />
-      <property-set name="bookingSeat" display-name-key="Booking_Seat" description-key="Legacy workstation lookup" of-type="Lookup.Simple" usage="bound" required="false" />
-      <property-set name="bookingSeatKey" display-name-key="Booking_Seat_Key" description-key="Virtual seat key" of-type="SingleLine.Text" usage="bound" required="true" />
-      <property-set name="bookingSeatNumber" display-name-key="Booking_Seat_Number" description-key="Seat number snapshot" of-type="SingleLine.Text" usage="bound" required="true" />
-      <property-set name="bookingEmployee" display-name-key="Booking_Employee" description-key="Employee Person column" of-type="Lookup.Simple" usage="bound" required="true" />
-      <property-set name="bookingEmployeeId" display-name-key="Booking_Employee_ID" description-key="Employee code snapshot" of-type="SingleLine.Text" usage="bound" required="false" />
-      <property-set name="bookingCreatedBy" display-name-key="Booking_Created_By" description-key="Created By Person column" of-type="Lookup.Simple" usage="bound" required="true" />
-      <property-set name="bookingStatus" display-name-key="Booking_Status" description-key="Booking status" of-type="OptionSet" usage="bound" required="true" />
-      <property-set name="bookingFloor" display-name-key="Booking_Floor" description-key="Floor snapshot" of-type="OptionSet" usage="bound" required="true" />
-      <property-set name="bookingZone" display-name-key="Booking_Zone" description-key="Zone snapshot" of-type="OptionSet" usage="bound" required="true" />
-      <property-set name="bookingKey" display-name-key="Booking_Key" description-key="Booking key" of-type="SingleLine.Text" usage="bound" required="true" />
-      <property-set name="reservationExpiresAt" display-name-key="Reservation_Expires_At" description-key="Reservation expiry" of-type="DateAndTime.DateAndTime" usage="bound" required="false" />
-      <property-set name="bookingManagerEmail" display-name-key="Booking_Manager_Email" description-key="Manager Person lookup used to resolve the manager email" of-type="Lookup.Simple" usage="bound" required="true" />
-      <property-set name="bookingTeamId" display-name-key="Booking_Team_ID" description-key="Team identifier snapshot" of-type="SingleLine.Text" usage="bound" required="true" />
-      <property-set name="bookingTeamName" display-name-key="Booking_Team_Name" description-key="Team display name snapshot" of-type="SingleLine.Text" usage="bound" required="false" />
+      <property-set name="historyBookingId" display-name-key="Booking_ID" description-key="SeatBookings record ID" of-type="Whole.None" usage="bound" required="true" />
+      <property-set name="historyBookingDate" display-name-key="Booking_Date" description-key="Booking date" of-type="DateAndTime.DateAndTime" usage="bound" required="true" />
+      <property-set name="historyBookingSeat" display-name-key="Booking_Seat" description-key="Legacy workstation lookup" of-type="Lookup.Simple" usage="bound" required="false" />
+      <property-set name="historyBookingSeatKey" display-name-key="Booking_Seat_Key" description-key="Virtual seat key" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="historyBookingSeatNumber" display-name-key="Booking_Seat_Number" description-key="Seat number snapshot" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="historyBookingEmployee" display-name-key="Booking_Employee" description-key="Employee Person column" of-type="Lookup.Simple" usage="bound" required="true" />
+      <property-set name="historyBookingEmployeeId" display-name-key="Booking_Employee_ID" description-key="Employee code snapshot" of-type="SingleLine.Text" usage="bound" required="false" />
+      <property-set name="historyBookingCreatedBy" display-name-key="Booking_Created_By" description-key="Created By Person column" of-type="Lookup.Simple" usage="bound" required="true" />
+      <property-set name="historyBookingStatus" display-name-key="Booking_Status" description-key="Booking status" of-type="OptionSet" usage="bound" required="true" />
+      <property-set name="historyBookingFloor" display-name-key="Booking_Floor" description-key="Floor snapshot" of-type="OptionSet" usage="bound" required="true" />
+      <property-set name="historyBookingZone" display-name-key="Booking_Zone" description-key="Zone snapshot" of-type="OptionSet" usage="bound" required="true" />
+      <property-set name="historyBookingKey" display-name-key="Booking_Key" description-key="Booking key" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="historyReservationExpiresAt" display-name-key="Reservation_Expires_At" description-key="Reservation expiry" of-type="DateAndTime.DateAndTime" usage="bound" required="false" />
+      <property-set name="historyBookingManager" display-name-key="Booking_Manager_Email" description-key="Manager Person lookup used to resolve the manager email" of-type="Lookup.Simple" usage="bound" required="true" />
+      <property-set name="historyBookingPractice" display-name-key="Booking_Team_ID" description-key="Team identifier snapshot" of-type="OptionSet" usage="bound" required="true" />
+      <property-set name="historyBookingPracticeName" display-name-key="Booking_Team_Name" description-key="Team display name snapshot" of-type="SingleLine.Text" usage="bound" required="false" />
     </data-set>
     <data-set name="bookingAccessDataSet" display-name-key="Booking_Access_Dataset">
       <property-set name="accessUser" display-name-key="Access_User" description-key="User assigned the access role" of-type="Lookup.Simple" usage="bound" required="true" />
       <property-set name="accessRole" display-name-key="Access_Role" description-key="HR or Practice Lead" of-type="OptionSet" usage="bound" required="true" />
-      <property-set name="accessTeamId" display-name-key="Access_Team_ID" description-key="Team assigned to a Practice Lead" of-type="SingleLine.Text" usage="bound" required="false" />
+      <property-set name="accessTeamId" display-name-key="Access_Team_ID" description-key="Team assigned to a Practice Lead" of-type="OptionSet" usage="bound" required="false" />
     </data-set>    <resources>
       <code path="index.ts" order="1"/>
       <css path="css/SeatMapControl.css" order="1" />
