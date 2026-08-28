@@ -31,10 +31,12 @@ export interface IAppProps {
     canCreateBookings: boolean;
     cancelBookingVisibleRecordCount?: number;
     currentUserEmail: string;
+    currentUserEmployeeCode: string;
     employees: IEmployee[];
     exceptions: ISeatException[];
     maximumPeoplePerBooking: number;
     onActionRequest: (request: IBookingActionRequest) => void;
+    onSignOut: () => void;
     previewMode: boolean;
     seats: ISeat[];
 }
@@ -61,8 +63,26 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
         this.setState({ isSignedIn: true, screen: "home" });
     };
 
+    private readonly handleSignOut = (): void => {
+        this.setState(
+            {
+                isSignedIn: false,
+                bookingSelection: undefined,
+                confirmedAssignments: undefined,
+                previewActionResult: undefined,
+                screen: "home"
+            },
+            this.props.onSignOut
+        );
+    };
+
     private readonly handleBookSeat = (): void => {
-        this.setState({ screen: "bookSeat" });
+        this.setState({
+            bookingSelection: undefined,
+            confirmedAssignments: undefined,
+            previewActionResult: undefined,
+            screen: "bookSeat"
+        });
     };
 
     private readonly handleMyBookings = (): void => {
@@ -74,7 +94,12 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
     };
 
     private readonly handleBackToHome = (): void => {
-        this.setState({ screen: "home" });
+        this.setState({
+            bookingSelection: undefined,
+            confirmedAssignments: undefined,
+            previewActionResult: undefined,
+            screen: "home"
+        });
     };
 
     private readonly handleContinueToSeats = (
@@ -100,6 +125,7 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
         this.setState({
             bookingSelection: undefined,
             confirmedAssignments: undefined,
+            previewActionResult: undefined,
             screen: "bookSeat"
         });
     };
@@ -140,12 +166,14 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
             allocatedHeight,
             allocatedWidth,
             bookingAccess,
-            bookings,            myBookings,
+            bookings,
+            myBookings,
             myBookingsPageSize,
             canBookForAnyone,
             canCreateBookings,
             cancelBookingVisibleRecordCount,
             currentUserEmail,
+            currentUserEmployeeCode,
             employees,
             exceptions,
             maximumPeoplePerBooking,
@@ -153,6 +181,15 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
             seats
         } = this.props;
         const currentEmail = currentUserEmail.trim().toLowerCase();
+        const currentEmployeeCode = currentUserEmployeeCode.trim().toLowerCase();
+        const signedInEmployee = employees.find(
+            (employee) => employee.employeeId.trim().toLowerCase() === currentEmployeeCode
+        );
+        const displayName = [
+            signedInEmployee?.name.trim(),
+            currentUserEmail.split("@")[0],
+            "User"
+        ].find((value) => Boolean(value)) ?? "User";
         const hasEmployeeRelationshipData = employees.some(
             (employee) =>
                 Boolean(employee.email.trim()) ||
@@ -237,6 +274,7 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
                         bookingAccess={bookingAccess}
                         bookings={myBookings}
                         currentUserEmail={currentUserEmail}
+                        currentUserEmployeeCode={currentUserEmployeeCode}
                         employees={employees}
                         myBookingsPageSize={myBookingsPageSize}
                         onBack={this.handleBackToHome}
@@ -244,17 +282,22 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
                 );
             }
             if (this.state.screen === "cancelBooking" ) {
-                return <CancelBookingScreen allocatedHeight={allocatedHeight} allocatedWidth={allocatedWidth} bookings={bookings} currentUserEmail={currentUserEmail} employees={employees} visibleRecordCount={cancelBookingVisibleRecordCount} onActionRequest={this.handleActionRequest} onBack={this.handleBackToHome} />;
+                return <CancelBookingScreen actionResult={previewMode ? this.state.previewActionResult : this.props.actionResult} allocatedHeight={allocatedHeight} allocatedWidth={allocatedWidth} bookings={bookings} currentUserEmail={currentUserEmail} currentUserEmployeeCode={currentUserEmployeeCode} employees={employees} visibleRecordCount={cancelBookingVisibleRecordCount} onActionRequest={this.handleActionRequest} onBack={this.handleBackToHome} />;
             }
 
             return (
                 <HomeScreen
                     allocatedHeight={allocatedHeight}
                     allocatedWidth={allocatedWidth}
+                    bookings={bookings}
                     canCreateBookings={canCreateBookings}
+                    displayName={displayName}
+                    exceptions={exceptions}
                     onCancelBooking={this.handleCancelBooking}
                     onMyBookings={this.handleMyBookings}
                     onBookSeat={this.handleBookSeat}
+                    onSignOut={this.handleSignOut}
+                    seats={seats}
                 />
             );
         }

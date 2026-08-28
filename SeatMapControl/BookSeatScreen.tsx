@@ -1,8 +1,8 @@
 import * as React from "react";
 
 import { BackButton } from "./BackButton";
-import ChevronIcon from "./assets/booking/chevron.svg";
 import {
+    BookingDropdown,
     BookingProgress,
     FormField,
     PrimaryButton
@@ -19,6 +19,7 @@ import {
     normalizeEmployeeId
 } from "./BookingModels";
 import { EmployeeMultiSelect } from "./EmployeeMultiSelect";
+import { ErrorDialog } from "./ErrorDialog";
 import {
     WorkingDayCalendar,
     getDefaultBookingDate,
@@ -47,6 +48,7 @@ interface IBookSeatScreenState {
     selectedEmployees: IEmployee[];
     zone: string;
     zoneError?: string;
+    errorMessage?: string;
 }
 
 export class BookSeatScreen extends React.PureComponent<
@@ -82,8 +84,23 @@ export class BookSeatScreen extends React.PureComponent<
         const floorError = this.state.floor ? undefined : "Select a floor.";
         const zoneError = this.state.zone ? undefined : "Select a zone.";
         const employeeErrors = this.getEmployeeErrors();
+        const alreadyBookedMessage = this.getAlreadyBookedMessage();
 
-        this.setState({ dateError, floorError, zoneError });
+        const validationErrors = [
+            ...(dateError ? [dateError] : []),
+            ...(floorError ? [floorError] : []),
+            ...(zoneError ? [zoneError] : []),
+            ...employeeErrors.filter((error) => error !== alreadyBookedMessage)
+        ];
+
+        this.setState({
+            dateError,
+            floorError,
+            zoneError,
+            errorMessage: validationErrors.length
+                ? validationErrors.join("\n")
+                : undefined
+        });
 
         if (
             !dateError &&
@@ -143,32 +160,7 @@ export class BookSeatScreen extends React.PureComponent<
             (employeeId, index) =>
                 normalizedEmployeeIds.indexOf(employeeId) !== index
         );
-        const activeBookings = this.props.bookings.filter(
-            (booking) =>
-                booking.bookingDate === this.state.date &&
-                isActiveBooking(booking)
-        );
-        const bookedEmployeeIds = new Set(
-            activeBookings
-                .map((booking) => normalizeEmployeeId(booking.employeeId))
-                .filter(Boolean)
-        );
-        const legacyBookedEmployeeEmails = new Set(
-            activeBookings
-                .filter((booking) => !normalizeEmployeeId(booking.employeeId))
-                .map((booking) => normalizeEmail(booking.employeeEmail))
-                .filter(Boolean)
-        );
-        const alreadyBookedEmployees = selectedEmployees.filter(
-            (employee) =>
-                bookedEmployeeIds.has(
-                    normalizeEmployeeId(employee.employeeId)
-                ) ||
-                (Boolean(normalizeEmail(employee.email)) &&
-                    legacyBookedEmployeeEmails.has(
-                        normalizeEmail(employee.email)
-                    ))
-        );
+        const alreadyBookedMessage = this.getAlreadyBookedMessage();
 
         if (selectedEmployees.length === 0) {
             errors.push("Select at least one employee.");
@@ -186,12 +178,8 @@ export class BookSeatScreen extends React.PureComponent<
             errors.push("Employee ID is required to complete a booking.");
         }
 
-        if (alreadyBookedEmployees.length > 0) {
-            errors.push(
-                `${alreadyBookedEmployees
-                    .map((employee) => employee.name)
-                    .join(", ")} already booked a seat for this date.`
-            );
+        if (alreadyBookedMessage) {
+            errors.push(alreadyBookedMessage);
         }
 
         if (selectedEmployees.length > maximumPeoplePerBooking) {
@@ -209,10 +197,49 @@ export class BookSeatScreen extends React.PureComponent<
         return errors;
     }
 
+    private getAlreadyBookedMessage(): string | undefined {
+        if (this.props.previewMode) {
+            return undefined;
+        }
+
+        const activeBookings = this.props.bookings.filter(
+            (booking) =>
+                booking.bookingDate === this.state.date &&
+                isActiveBooking(booking)
+        );
+        const bookedEmployeeIds = new Set(
+            activeBookings
+                .map((booking) => normalizeEmployeeId(booking.employeeId))
+                .filter(Boolean)
+        );
+        const legacyBookedEmployeeEmails = new Set(
+            activeBookings
+                .filter((booking) => !normalizeEmployeeId(booking.employeeId))
+                .map((booking) => normalizeEmail(booking.employeeEmail))
+                .filter(Boolean)
+        );
+        const alreadyBookedEmployees = this.state.selectedEmployees.filter(
+            (employee) =>
+                bookedEmployeeIds.has(
+                    normalizeEmployeeId(employee.employeeId)
+                ) ||
+                (Boolean(normalizeEmail(employee.email)) &&
+                    legacyBookedEmployeeEmails.has(
+                        normalizeEmail(employee.email)
+                    ))
+        );
+
+        return alreadyBookedEmployees.length > 0
+            ? `${alreadyBookedEmployees
+                  .map((employee) => employee.name)
+                  .join(", ")} already booked a seat for this date.`
+            : undefined;
+    }
     public render(): React.ReactNode {
         const { allocatedHeight, allocatedWidth } = this.props;
         const classes = ["book-seat-control"];
         const employeeErrors = this.getEmployeeErrors();
+        const alreadyBookedMessage = this.getAlreadyBookedMessage();
         const dateInvalid =
             !this.props.previewMode &&
             !isSelectableBookingDate(this.state.date);
@@ -228,6 +255,16 @@ export class BookSeatScreen extends React.PureComponent<
                     .filter(Boolean)
             )
         ).sort();
+        const employeeSelectionBlockedMessage =
+            !this.state.floor && !this.state.zone
+                ? "Floor and zone need to be selected."
+                : !this.state.floor
+                  ? "Floor needs to be selected."
+                  : !this.state.zone
+                    ? "Zone needs to be selected."
+                    : availableSeatCount <= 0
+                      ? "No seats are available for the selected floor and zone."
+                      : undefined;
 
         if (allocatedWidth > 0 && allocatedWidth <= 600) {
             classes.push("book-seat-control--mobile");
@@ -255,7 +292,6 @@ export class BookSeatScreen extends React.PureComponent<
 
                     <form className="booking-form" noValidate onSubmit={this.handleSubmit}>
                         <FormField
-                            error={this.state.dateError}
                             htmlFor="booking-date"
                             label="Select Date"
                         >
@@ -266,68 +302,53 @@ export class BookSeatScreen extends React.PureComponent<
                                 onChange={(date) =>
                                     this.setState({
                                         date,
-                                        dateError: undefined
+                                        dateError: undefined,
+                                        errorMessage: undefined
                                     })
                                 }
                             />
                         </FormField>
 
                         <FormField
-                            error={this.state.floorError}
                             htmlFor="booking-floor"
                             label="Select Floor"
                         >
-                            <span className="booking-input-wrapper booking-select-wrapper">
-                                <select
-                                    aria-invalid={Boolean(this.state.floorError)}
-                                    id="booking-floor"
-                                    value={this.state.floor}
-                                    onChange={(event) =>
-                                        this.setState({
-                                            floor: event.currentTarget.value,
-                                            floorError: undefined,
-                                            zone: ""
-                                        })
-                                    }
-                                >
-                                    <option value="">Select a floor</option>
-                                    {floors.map((floor) => (
-                                        <option key={floor} value={floor}>
-                                            {floor}
-                                        </option>
-                                    ))}
-                                </select>
-                                <ChevronIcon aria-hidden="true" focusable="false" />
-                            </span>
+                            <BookingDropdown
+                                id="booking-floor"
+                                invalid={Boolean(this.state.floorError)}
+                                options={floors}
+                                placeholder="Select a floor"
+                                value={this.state.floor}
+                                onChange={(floor) =>
+                                    this.setState({
+                                        floor,
+                                        floorError: undefined,
+                                        zone: "",
+                                        errorMessage: undefined
+                                    })
+                                }
+                            />
                         </FormField>
 
                         <FormField
-                            error={this.state.zoneError}
                             htmlFor="booking-zone"
                             label="Select Zone"
                         >
-                            <span className="booking-input-wrapper booking-select-wrapper">
-                                <select
-                                    aria-invalid={Boolean(this.state.zoneError)}
-                                    disabled={!this.state.floor}
-                                    id="booking-zone"
-                                    value={this.state.zone}
-                                    onChange={(event) =>
-                                        this.setState({
-                                            zone: event.currentTarget.value,
-                                            zoneError: undefined
-                                        })
-                                    }
-                                >
-                                    <option value="">Select a zone</option>
-                                    {zones.map((zone) => (
-                                        <option key={zone} value={zone}>
-                                            {zone}
-                                        </option>
-                                    ))}
-                                </select>
-                                <ChevronIcon aria-hidden="true" focusable="false" />
-                            </span>
+                            <BookingDropdown
+                                disabled={!this.state.floor}
+                                id="booking-zone"
+                                invalid={Boolean(this.state.zoneError)}
+                                options={zones}
+                                placeholder="Select a zone"
+                                value={this.state.zone}
+                                onChange={(zone) =>
+                                    this.setState({
+                                        zone,
+                                        zoneError: undefined,
+                                        errorMessage: undefined
+                                    })
+                                }
+                            />
                         </FormField>
 
                         <EmployeeMultiSelect
@@ -337,8 +358,12 @@ export class BookSeatScreen extends React.PureComponent<
                                 availableSeatCount
                             )}
                             selectedEmployees={this.state.selectedEmployees}
+                            selectionBlockedMessage={employeeSelectionBlockedMessage}
                             onChange={(selectedEmployees) =>
-                                this.setState({ selectedEmployees })
+                                this.setState({
+                                    selectedEmployees,
+                                    errorMessage: undefined
+                                })
                             }
                         />
                         <section className="employee-selection" aria-label="Seat capacity">
@@ -346,11 +371,11 @@ export class BookSeatScreen extends React.PureComponent<
                                 <span>Seats required: {this.state.selectedEmployees.length}</span>
                                 <span>Available: {availableSeatCount}</span>
                             </div>
-                            {employeeErrors.map((error) => (
-                                <p className="booking-field-error" key={error} role="alert">
-                                    {error}
+                            {alreadyBookedMessage ? (
+                                <p className="booking-field-error" role="alert">
+                                    {alreadyBookedMessage}
                                 </p>
-                            ))}
+                            ) : null}
                         </section>
 
                         <PrimaryButton
@@ -366,6 +391,10 @@ export class BookSeatScreen extends React.PureComponent<
                         </PrimaryButton>
                     </form>
                 </section>
+                <ErrorDialog
+                    message={this.state.errorMessage}
+                    onDismiss={() => this.setState({ errorMessage: undefined })}
+                />
             </main>
         );
     }

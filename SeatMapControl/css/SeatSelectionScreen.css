@@ -138,6 +138,11 @@
     color: #ffffff;
 }
 
+.seat-button--replacement-target {
+    outline: 3px solid #2563eb;
+    outline-offset: 2px;
+}
+
 .seat-button--reserved {
     border: 1px solid #f59e0b;
     background: #fffbeb;

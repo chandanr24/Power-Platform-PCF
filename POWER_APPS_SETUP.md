@@ -233,7 +233,13 @@ Store the employee's `EmpCode` in `EmployeeCode` whenever a SeatBookings row is 
 
 ### Cancel Booking rules
 
-The Cancel Booking screen displays only completed bookings (`Status = "Booked"`) dated today or later. It provides optional Employee Code or Employee Name and Booking Date filters, followed by a single-choice selection. The **Cancel selected booking** button remains disabled until one booking is selected and then requires confirmation before sending the `release` action.
+The Cancel Booking screen displays only completed bookings (`Status = "Booked"`) dated today or later. It provides optional Employee Code or Employee Name and Booking Date filters, followed by multi-selection of up to five eligible bookings. The **Cancel selected bookings (n)** button remains disabled until at least one booking is selected and then requires confirmation before sending the separate `cancelGroup` action. Temporary `Selected` reservation release continues to use `release` and `releaseGroup`.
+
+Before those filters are applied, the screen restricts records to the signed-in
+employee and that employee's direct manager. App ownership, Created By, and
+SharePoint site ownership do not grant a Cancel Booking visibility bypass.
+Employee and Created By Person values are resolved through both their PCF
+aliases and mapped SharePoint internal column names.
 
 `bookingEmployee` and `bookingCreatedBy` are native `Lookup.Simple` properties.
 `bookingEmployeeId` is the EmpCode snapshot used for active duplicate-booking
@@ -241,6 +247,36 @@ checks. Populate it for every new booking. The optional `bookingSeat` lookup is
 read only as a legacy fallback while existing booking rows are being backfilled.
 Legacy rows without EmployeeId use Person email only as a temporary fallback.
 
+## Home dashboard values
+
+The Home screen resolves the welcome name by matching
+`currentUserEmployeeCode` to the Employees `employeeId` mapping. If no mapped
+employee matches, it uses the part of `currentUserEmail` before `@`, then
+`User` as the final fallback. No additional PCF property is required.
+
+The Home seat totals are calculated from the mapped datasets:
+
+- **Total Seat Capacity** is the number of unique virtual seats generated from
+  the active SeatRanges dataset.
+- **Booked Seats** is the number of unique current-capacity seats with an
+  active `Booked` record for today.
+- **Seat Availability** is total capacity minus today's active `Booked` or
+  unexpired `Selected` seats and active `Maintenance` or `Disabled`
+  SeatExceptions. Duplicate booking or exception rows cannot reduce the count
+  more than once because the calculation uses unique SeatKeys.
+
+Meeting room totals remain unchanged until meeting-room data is implemented.
+To make external SeatRanges, SeatExceptions, or SeatBookings changes visible
+when the screen initializes, keep these refreshes in `Screen1.OnVisible`:
+
+```powerfx
+Refresh(SeatRanges);
+Refresh(SeatExceptions);
+Refresh(SeatBookings)
+```
+
+The PCF recalculates the Home values whenever those mapped datasets refresh; it
+does not poll continuously.
 ## Authentication and permissions
 
 Use this delegable authorization formula for `currentUserEmail`:
@@ -259,6 +295,20 @@ If(
     Blank()
 )
 ```
+
+Set `currentUserEmployeeCode` from the same Employees source:
+
+```powerfx
+LookUp(
+    Employees,
+    EmployeeMail.Email = User().Email,
+    EmpCode
+)
+```
+
+Employee and direct-manager authorization in Cancel Booking and My Bookings
+uses this stable EmpCode together with the server-scoped Employees dataset.
+Person email remains a legacy fallback for historical records.
 
 Only managers with at least one reportee may create bookings:
 
@@ -281,6 +331,35 @@ canBookForAnyone = false
 maximumPeoplePerBooking = 30
 actionResultJson = varSeatBookingActionResult
 ```
+### Sign out
+
+Version 1.3.28 replaces the Home sidebar Profile item with **Sign out**. The
+control clears its temporary booking state, returns to its login view, and
+increments the dedicated `signOutSequence` output. Keep sign-out separate from
+`actionRequestJson` so reserve, release, and confirmation processing is
+unchanged.
+
+Wrap the existing `SeatMapControl1.OnChange` booking-action formula with this
+condition:
+
+```powerfx
+If(
+    SeatMapControl1.signOutSequence >
+        Coalesce(varHandledSignOutSequence, 0),
+    Set(
+        varHandledSignOutSequence,
+        SeatMapControl1.signOutSequence
+    );
+    Exit(true),
+    /* existing complete booking-action formula */
+)
+```
+
+`Exit(true)` signs the current user out of Power Apps only in a running,
+published app. Power Apps Studio does not exit or sign out while authoring, so
+test this behaviour from the published app. Power Apps may return the user to
+its app list or Microsoft sign-in page; opening the app again requires the user
+to authenticate.
 
 Version 0.0.13 also treats a blank, invalid, or zero
 `maximumPeoplePerBooking` input as `30`. A positive value supplied by Canvas is
@@ -303,11 +382,31 @@ Refresh(SeatBookings);
 Set(varSeatBookingActionResult, "")
 ```
 
+For same-day updates while the single Canvas screen remains open, add a Timer named `tmrDashboardRefresh` to that screen and use:
+
+```powerfx
+Duration = 60000
+Repeat = true
+AutoStart = true
+AutoPause = false
+Visible = false
+```
+
+Set its `OnTimerEnd` to:
+
+```powerfx
+Refresh(SeatBookings);
+Refresh(SeatRanges);
+Refresh(SeatExceptions)
+```
+
+The Timer refreshes the mapped datasets every 60 seconds. The PCF then recalculates today's Booked Seats and Seat Availability, including bookings or cancellations made by other users. The Timer text is irrelevant while `Visible` is false.
+
 ## Booking command handling
 
 Use `SeatMapControl1.OnChange` to process `actionRequestJson`. The
 `actionSequence` output increments for every `reserve`, `release`,
-`releaseGroup`, or `confirmGroup` request. Direct `Patch` calls are not subject
+`releaseGroup`, `confirmGroup`, or `cancelGroup` request. Direct `Patch` calls are not subject
 to query delegation. Any record lookup performed before a patch must use a
 delegable key comparison, preferably SharePoint `ID = Value(...)` or the unique
 `BookingKey = ...`.
@@ -316,10 +415,11 @@ The actions are:
 
 | Action | SharePoint operation |
 | --- | --- |
-| `reserve` | Create `Selected` records with a 10-minute expiry |
+| `reserve` | Create `Selected` records with a five-minute expiry |
 | `release` | Change one record to `Cancelled` and release its unique key |
 | `releaseGroup` | Release all temporary records in the request |
 | `confirmGroup` | Change all temporary records in the request to `Booked` |
+| `cancelGroup` | Cancel up to five already `Booked` records dated today or later; it is handled by a distinct Canvas branch and then triggers the cancellation-email flow |
 
 Return the result through `varSeatBookingActionResult`:
 
@@ -344,6 +444,29 @@ After every successful write, call:
 ```powerfx
 Refresh(SeatBookings)
 ```
+
+In `SeatMapControl1.OnChange`, place `Refresh(SeatBookings);` immediately before the success `Set(varSeatBookingActionResult, ...)` in each `reserve`, `release`, `releaseGroup`, `confirmGroup`, and `cancelGroup` branch. This refreshes the PCF dataset after a successful write; it is not continuous polling. A simultaneous reservation conflict is reported by the unique `BookingKey` write, after which the seat map unlocks and the user can choose another seat.
+
+The PCF applies a 10-second recovery timeout only while waiting for a `reserve`
+result. A matching success or failure result cancels the timeout immediately. If
+Power Apps does not return a matching `requestId`—for example, when a
+SharePoint unique-value error escapes the Canvas formula—the PCF clears the
+pending UI lock, ignores any later stale result, and displays a five-second
+error dialog so the user can choose another seat or go Back. This timeout does
+not replace the unique `BookingKey` constraint and does not apply to release or
+confirmation actions.
+
+To test simultaneous booking, open the published app as two authorized users,
+select the same date and virtual seat, and reserve it from both sessions. One
+request must create the unique booking. The other session may still show the
+Power Apps/SharePoint error banner, but within 10 seconds its seat grid and Back
+button must become usable and the PCF error dialog must appear.
+
+The booking flow keeps date, floor, zone, and employees when returning from Seat Selection to edit. Leaving the flow to Home or starting Book Seat again clears the temporary selection, confirmed assignments, and preview action state.
+
+New temporary seat reservations expire five minutes after each seat is selected. The Canvas formula stores the PCF-supplied `requestAssignment.expiresAt`; it must not replace that value with a separate hardcoded duration. The visible countdown uses the earliest active assignment in a bulk booking.
+
+For one employee, clicking another available seat reserves the replacement before releasing the original seat. In bulk booking, click an assigned seat to mark that employee as the replacement target, then click the new seat. If the new reservation fails, the original remains selected. If releasing the original fails, the PCF attempts to release the new reservation and reports the failure. Clicking the active assigned seat again performs an explicit deselection. These operations reuse the existing `reserve` and `release` actions and do not require another Canvas action branch.
 
 Catch the SharePoint unique-value error on `BookingKey` and return a failed
 action result so two managers cannot reserve the same seat/date key.
@@ -389,6 +512,41 @@ Do not call the flow for `reserve`, `release`, or expired reservations. The PCF
 does not pass employee email; the backend lookup makes the Employees list the
 source of truth for notifications.
 
+## Cancellation email flow
+
+The `cancelGroup` action is only for confirmed bookings. It must never be used for
+unconfirmed `Selected` reservations.
+
+In `SeatMapControl1.OnChange`, add a separate `cancelGroup` branch after the
+existing temporary-reservation action branches. The branch must:
+
+1. Reject a request with more than five assignments.
+2. For each request assignment, use its SharePoint `bookingId` to find the row.
+3. Recheck that `Status` is `Booked` and `BookingDate >= Today()` before updating.
+4. Change successful rows to `Cancelled` and change the unique BookingKey to
+   `original-key|cancelled|SharePointID`.
+5. Refresh `SeatBookings` once after the group finishes.
+6. Return `action: "cancelGroup"`, the original `requestId`, and only the
+   successfully cancelled records through `varSeatBookingActionResult`.
+7. Call the cancellation-email flow with only those successful records.
+
+Create a Power Apps (V2) flow named `SeatBookingCancellationEmail` with one
+text input named `cancellationsJson`. Power Apps passes a JSON array of the
+successful records; each item includes `bookingId`, `bookingKey`, `employeeId`,
+`employeeName`, `bookingDate`, `seatNumber`, `floor`, and `zone`.
+
+The flow must parse that array, then for each item get the SeatBookings row by
+`bookingId`, read the Employee Person column email, and send one cancellation
+email containing the employee name, booking date, seat, floor, and zone. The
+flow does not change Booking Status or BookingKey; those updates remain in the
+Power Apps formula. Do not call the flow for failed updates, temporary releases,
+or expired reservations.
+
+PCF deployment version `1.3.35` contains the Cancel Booking checkbox
+multi-selection UI and the `cancelGroup` request. After importing this version,
+update code components in the Canvas app before adding the matching OnChange
+formula branch. No additional PCF property or dataset binding is required for
+`cancelGroup`.
 ## Delegation rules for this app
 
 Use:
@@ -429,7 +587,7 @@ and administrators.
 
 ## Scrollable selection areas
 
-Set the `cancelBookingVisibleRecordCount` input from a Power Apps formula. It has no code default: a positive value sets the number of Cancel Booking rows visible before the list scrolls; leave it blank to avoid applying a row limit. The Seat Selection screen always scrolls only its virtual-seat grid, so additional virtual seats do not increase the card height.
+Set the `cancelBookingVisibleRecordCount` input from a Power Apps formula. It has no code default: a positive value sets the number of Cancel Booking rows visible before the list scrolls; leave it blank to avoid applying a row limit. Set it to `3` to keep approximately three records visible. Only the records scroll; the heading, filters, and Cancel button remain fixed inside the card. The Seat Selection screen always scrolls only its virtual-seat grid, so additional virtual seats do not increase the card height.
 
 ## Book Seat required fields
 
@@ -441,7 +599,30 @@ In the Book Seat employee search, use **Arrow Down** and **Arrow Up** to move th
 
 ## Booking date calendar
 
-The Book Seat date calendar closes when the user selects a date, clicks/taps outside it, or moves keyboard focus to another control.
+The Book Seat date calendar closes when the user selects a date, clicks/taps outside it, or moves keyboard focus to another control. My Bookings uses the same styled calendar for From and To dates, but keeps historical dates and weekends selectable. Clicking anywhere in either date field opens its calendar; selecting another control or clicking outside closes it. From and To date limits prevent an invalid range.
+
+Clicking outside the Book Seat employee search—including Date, Floor, Zone, or another control—clears the typed search text and keyboard highlight and closes the suggestion list. Employees already selected are not removed.
+
+The Book Seat Floor and Zone controls use rounded custom dropdowns that match
+the employee search colors. They support Arrow Up/Down, Enter, Escape, Tab, and
+outside-click closing. Employee selection remains blocked until the required
+Floor and Zone values are selected. The selected-employee list keeps one row
+visible and scrolls internally for additional employees so it does not grow the
+main booking card.
+
+## Login screen sizing
+
+The login card centers within the size allocated to the PCF. Give the control
+the full Canvas screen area:
+
+```powerfx
+X = 0
+Y = 0
+Width = Parent.Width
+Height = Parent.Height
+```
+
+The login view scrolls only when its card cannot fit in the available height.
 
 Cancel Booking resolves EmployeeName from the Employees dataset using the booking EmployeeCode; it displays the name and allows searches by either code or name.
 
@@ -452,7 +633,7 @@ statuses and dates supplied to its dataset, then applies access scope before
 user-facing filters:
 
 - Employee: only their own booking history.
-- Manager: only direct reporters' history.
+- Manager: their own history and their direct reporters' history.
 - Practice Lead: only the Practice values assigned to them.
 - HR: all booking history.
 
@@ -520,9 +701,17 @@ Map `bookingAccessDataSet_Items` to BookingAccess:
 | `accessRole` | internal name of `Role` |
 | `accessTeamId` | internal name of `Practice` |
 
-Set `myBookingsPageSize` with a Power Fx formula such as `10`. It has no PCF
-fallback value: leave it blank to display the supplied authorized results in
-one page; set a positive number to enable the Previous/Next pager.
+Set `myBookingsPageSize` to `10`. With no My Bookings filters active, the
+screen displays only the latest 10 authorized records and intentionally hides
+older pages. When any date, employee, team, or manager filter is active, the
+same value becomes the page size and Previous/Next exposes all matching
+authorized records. Leave the property blank only when all supplied results
+should remain on one page.
+
+The My Bookings header, filters, record heading, and pager stay inside the
+fixed-height card. Only the current page's booking table scrolls vertically;
+its column headings remain visible while scrolling. A value such as `5` is
+recommended for compact Canvas layouts.
 
 When creating a SeatBookings record, resolve the employee by EmpCode and write
 `Manager` and `Practice` together with the existing EmployeeId snapshot.

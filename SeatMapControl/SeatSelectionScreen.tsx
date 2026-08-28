@@ -5,6 +5,7 @@ import {
     IBookingActionRequest,
     IBookingActionResult,
     IBookingSelection,
+    IEmployee,
     ISeat,
     ISeatAssignment,
     ISeatBooking,
@@ -15,6 +16,7 @@ import {
     normalizeEmail
 } from "./BookingModels";
 import { BookingProgress, PrimaryButton } from "./BookingComponents";
+import { ErrorDialog } from "./ErrorDialog";
 
 type SeatStatus =
     | "available"
@@ -37,9 +39,22 @@ export interface ISeatSelectionScreenProps {
     seats: ISeat[];
 }
 
+type ReplacementStage =
+    | "reserveNew"
+    | "releaseOriginal"
+    | "rollbackNew";
+
+interface IReplacementContext {
+    failureMessage?: string;
+    newAssignment: ISeatAssignment;
+    originalAssignment: ISeatAssignment;
+    stage: ReplacementStage;
+}
+
 interface IPendingAction {
     assignments: ISeatAssignment[];
     navigateBack?: boolean;
+    replacement?: IReplacementContext;
     request: IBookingActionRequest;
 }
 
@@ -47,17 +62,24 @@ interface ISeatSelectionScreenState {
     assignments: ISeatAssignment[];
     now: number;
     pending?: IPendingAction;
+    replacementTargetSeatKey?: string;
     selectionError?: string;
 }
 
 interface ISeatButtonProps {
     onClick: () => void;
+    replacementTarget: boolean;
     seat: ISeat;
     status: SeatStatus;
 }
 
 const createRequestId = (): string =>
     `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+const RESERVATION_DURATION_MS = 5 * 60 * 1000;
+const RESERVATION_RESPONSE_TIMEOUT_MS = 10_000;
+const RESERVATION_TIMEOUT_MESSAGE =
+    "The seat reservation could not be completed. It may have been selected by another user. Please choose another seat.";
 
 const createBookingKey = (
     date: string,
@@ -85,11 +107,14 @@ const toRequestAssignment = (
 
 const SeatButton: React.FC<ISeatButtonProps> = ({
     onClick,
+    replacementTarget,
     seat,
     status
 }) => (
     <button
-        className={`seat-button seat-button--${status}`}
+        className={`seat-button seat-button--${status}${
+            replacementTarget ? " seat-button--replacement-target" : ""
+        }`}
         disabled={
             status === "reserved" ||
             status === "booked" ||
@@ -128,6 +153,7 @@ export class SeatSelectionScreen extends React.PureComponent<
     ISeatSelectionScreenState
 > {
     private timer?: number;
+    private reservationResponseTimer?: number;
 
     public state: ISeatSelectionScreenState = {
         assignments: this.getRestoredAssignments(),
@@ -155,6 +181,8 @@ export class SeatSelectionScreen extends React.PureComponent<
         if (this.timer !== undefined) {
             window.clearInterval(this.timer);
         }
+
+        this.clearReservationResponseTimer();
     }
 
     private getRestoredAssignments(): ISeatAssignment[] {
@@ -188,7 +216,7 @@ export class SeatSelectionScreen extends React.PureComponent<
                     employee,
                     expiresAt:
                         booking.expiresAt ??
-                        new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+                        new Date(Date.now() + RESERVATION_DURATION_MS).toISOString(),
                     seat
                 });
 
@@ -261,6 +289,21 @@ export class SeatSelectionScreen extends React.PureComponent<
         return "booked";
     }
 
+    private getNextUnassignedEmployee(): IEmployee | undefined {
+        const assignedEmployeeIds = new Set(
+            this.state.assignments.map((assignment) =>
+                assignment.employee.employeeId.trim().toLowerCase()
+            )
+        );
+
+        return this.props.bookingSelection.employees.find(
+            (employee) =>
+                !assignedEmployeeIds.has(
+                    employee.employeeId.trim().toLowerCase()
+                )
+        );
+    }
+
     private readonly toggleSeat = (seat: ISeat): void => {
         if (this.state.pending) {
             return;
@@ -271,19 +314,43 @@ export class SeatSelectionScreen extends React.PureComponent<
         );
 
         if (existing) {
-            this.requestAction("release", [existing]);
+            if (
+                this.state.replacementTargetSeatKey ===
+                existing.seat.seatKey
+            ) {
+                this.setState(
+                    { replacementTargetSeatKey: undefined },
+                    () => this.requestAction("release", [existing])
+                );
+                return;
+            }
+
+            this.setState({
+                replacementTargetSeatKey: existing.seat.seatKey,
+                selectionError: undefined
+            });
             return;
         }
 
+        const selectedReplacementTarget = this.state.assignments.find(
+            (assignment) =>
+                assignment.seat.seatKey ===
+                this.state.replacementTargetSeatKey
+        );
+        const replacementOriginal =
+            selectedReplacementTarget ??
+            (this.props.bookingSelection.employees.length === 1 &&
+            this.state.assignments.length === 1
+                ? this.state.assignments[0]
+                : undefined);
         const employee =
-            this.props.bookingSelection.employees[
-                this.state.assignments.length
-            ];
+            replacementOriginal?.employee ??
+            this.getNextUnassignedEmployee();
 
         if (!employee) {
             this.setState({
                 selectionError:
-                    "The number of selected seats cannot exceed the number of employees."
+                    "Select an assigned seat first to choose which employee needs a different seat."
             });
             return;
         }
@@ -295,10 +362,19 @@ export class SeatSelectionScreen extends React.PureComponent<
             ),
             employee,
             expiresAt: new Date(
-                Date.now() + 10 * 60 * 1000
+                Date.now() + RESERVATION_DURATION_MS
             ).toISOString(),
             seat
         };
+
+        if (replacementOriginal) {
+            this.requestAction("reserve", [assignment], false, {
+                newAssignment: assignment,
+                originalAssignment: replacementOriginal,
+                stage: "reserveNew"
+            });
+            return;
+        }
 
         this.requestAction("reserve", [assignment]);
     };
@@ -306,7 +382,8 @@ export class SeatSelectionScreen extends React.PureComponent<
     private requestAction(
         action: IBookingActionRequest["action"],
         assignments: ISeatAssignment[],
-        navigateBack = false
+        navigateBack = false,
+        replacement?: IReplacementContext
     ): void {
         const request: IBookingActionRequest = {
             action,
@@ -320,10 +397,43 @@ export class SeatSelectionScreen extends React.PureComponent<
         };
 
         this.setState({
-            pending: { assignments, navigateBack, request },
+            pending: { assignments, navigateBack, replacement, request },
             selectionError: undefined
         });
+
+        if (action === "reserve") {
+            this.startReservationResponseTimer(request.requestId);
+        }
+
         this.props.onActionRequest(request);
+    }
+
+    private startReservationResponseTimer(requestId: string): void {
+        this.clearReservationResponseTimer();
+        this.reservationResponseTimer = window.setTimeout(() => {
+            this.reservationResponseTimer = undefined;
+            this.setState((state) => {
+                if (
+                    !state.pending ||
+                    state.pending.request.action !== "reserve" ||
+                    state.pending.request.requestId !== requestId
+                ) {
+                    return null;
+                }
+
+                return {
+                    pending: undefined,
+                    selectionError: RESERVATION_TIMEOUT_MESSAGE
+                };
+            });
+        }, RESERVATION_RESPONSE_TIMEOUT_MS);
+    }
+
+    private clearReservationResponseTimer(): void {
+        if (this.reservationResponseTimer !== undefined) {
+            window.clearTimeout(this.reservationResponseTimer);
+            this.reservationResponseTimer = undefined;
+        }
     }
 
     private applyActionResult(result: IBookingActionResult): void {
@@ -333,12 +443,46 @@ export class SeatSelectionScreen extends React.PureComponent<
             return;
         }
 
+        this.clearReservationResponseTimer();
+
         if (!result.success) {
+            const errorMessage =
+                result.error ??
+                "The booking action could not be completed. Refresh and try again.";
+
+            if (pending.replacement?.stage === "releaseOriginal") {
+                const replacement = pending.replacement;
+
+                this.setState({ pending: undefined }, () =>
+                    this.requestAction(
+                        "release",
+                        [replacement.newAssignment],
+                        false,
+                        {
+                            ...replacement,
+                            failureMessage: errorMessage,
+                            stage: "rollbackNew"
+                        }
+                    )
+                );
+                return;
+            }
+
+            if (pending.replacement?.stage === "rollbackNew") {
+                this.setState({
+                    pending: undefined,
+                    replacementTargetSeatKey:
+                        pending.replacement.originalAssignment.seat.seatKey,
+                    selectionError: `${
+                        pending.replacement.failureMessage ?? errorMessage
+                    } The replacement reservation could not be released automatically. Refresh before continuing.`
+                });
+                return;
+            }
+
             this.setState({
                 pending: undefined,
-                selectionError:
-                    result.error ??
-                    "The booking action could not be completed. Refresh and try again."
+                selectionError: errorMessage
             });
             return;
         }
@@ -346,18 +490,36 @@ export class SeatSelectionScreen extends React.PureComponent<
         if (result.action === "reserve") {
             const record = result.records?.[0];
             const assignment = pending.assignments[0];
+            const resolvedAssignment: ISeatAssignment = {
+                ...assignment,
+                bookingId: record?.bookingId,
+                bookingKey: record?.bookingKey ?? assignment.bookingKey,
+                expiresAt: record?.expiresAt ?? assignment.expiresAt
+            };
+
+            if (pending.replacement?.stage === "reserveNew") {
+                const originalAssignment =
+                    pending.replacement.originalAssignment;
+
+                this.setState({ pending: undefined }, () =>
+                    this.requestAction(
+                        "release",
+                        [originalAssignment],
+                        false,
+                        {
+                            newAssignment: resolvedAssignment,
+                            originalAssignment,
+                            stage: "releaseOriginal"
+                        }
+                    )
+                );
+                return;
+            }
 
             this.setState({
                 assignments: [
                     ...this.state.assignments,
-                    {
-                        ...assignment,
-                        bookingId: record?.bookingId,
-                        bookingKey:
-                            record?.bookingKey ?? assignment.bookingKey,
-                        expiresAt:
-                            record?.expiresAt ?? assignment.expiresAt
-                    }
+                    resolvedAssignment
                 ],
                 pending: undefined
             });
@@ -368,6 +530,34 @@ export class SeatSelectionScreen extends React.PureComponent<
             result.action === "release" ||
             result.action === "releaseGroup"
         ) {
+            if (pending.replacement?.stage === "releaseOriginal") {
+                const replacement = pending.replacement;
+
+                this.setState((state) => ({
+                    assignments: state.assignments.map((assignment) =>
+                        assignment.seat.seatKey ===
+                        replacement.originalAssignment.seat.seatKey
+                            ? replacement.newAssignment
+                            : assignment
+                    ),
+                    pending: undefined,
+                    replacementTargetSeatKey: undefined
+                }));
+                return;
+            }
+
+            if (pending.replacement?.stage === "rollbackNew") {
+                this.setState({
+                    pending: undefined,
+                    replacementTargetSeatKey:
+                        pending.replacement.originalAssignment.seat.seatKey,
+                    selectionError:
+                        pending.replacement.failureMessage ??
+                        "The seat could not be changed. Your original seat remains selected."
+                });
+                return;
+            }
+
             const releasedSeatKeys = new Set(
                 pending.assignments.map(
                     (assignment) => assignment.seat.seatKey
@@ -376,13 +566,18 @@ export class SeatSelectionScreen extends React.PureComponent<
             const navigateBack = pending.navigateBack;
 
             this.setState(
-                {
-                    assignments: this.state.assignments.filter(
+                (state) => ({
+                    assignments: state.assignments.filter(
                         (assignment) =>
                             !releasedSeatKeys.has(assignment.seat.seatKey)
                     ),
-                    pending: undefined
-                },
+                    pending: undefined,
+                    replacementTargetSeatKey: releasedSeatKeys.has(
+                        state.replacementTargetSeatKey ?? ""
+                    )
+                        ? undefined
+                        : state.replacementTargetSeatKey
+                }),
                 navigateBack ? this.props.onBack : undefined
             );
             return;
@@ -441,7 +636,13 @@ export class SeatSelectionScreen extends React.PureComponent<
         const seats = this.getFilteredSeats();
         const requiredCount = bookingSelection.employees.length;
         const selectedCount = this.state.assignments.length;
-        const nextEmployee = bookingSelection.employees[selectedCount];
+        const nextEmployee = this.getNextUnassignedEmployee();
+        const replacementTarget =
+            this.state.assignments.find(
+                (assignment) =>
+                    assignment.seat.seatKey ===
+                    this.state.replacementTargetSeatKey
+            ) ?? this.state.pending?.replacement?.originalAssignment;
         const earliestExpiry = this.state.assignments.reduce(
             (earliest, assignment) =>
                 Math.min(
@@ -486,9 +687,11 @@ export class SeatSelectionScreen extends React.PureComponent<
                                 {selectedCount} of {requiredCount} seats selected
                             </strong>
                             <span>
-                                {nextEmployee
-                                    ? `Selecting for ${nextEmployee.name} (${nextEmployee.employeeId})`
-                                    : "All employees have a seat"}
+                                {replacementTarget
+                                    ? `Changing seat for ${replacementTarget.employee.name} (${replacementTarget.employee.employeeId})`
+                                    : nextEmployee
+                                      ? `Selecting for ${nextEmployee.name} (${nextEmployee.employeeId})`
+                                      : "All employees have a seat. Select an assigned seat to change it."}
                             </span>
                         </div>
                         {remainingSeconds > 0 ? (
@@ -508,6 +711,10 @@ export class SeatSelectionScreen extends React.PureComponent<
                             {seats.map((seat) => (
                                 <SeatButton
                                     key={seat.seatKey}
+                                    replacementTarget={
+                                        replacementTarget?.seat.seatKey ===
+                                        seat.seatKey
+                                    }
                                     seat={seat}
                                     status={this.getSeatStatus(seat)}
                                     onClick={() => this.toggleSeat(seat)}
@@ -522,12 +729,11 @@ export class SeatSelectionScreen extends React.PureComponent<
                     ) : null}
                     {this.state.pending ? (
                         <p className="seat-map-pending" role="status">
-                            Processing reservation...
-                        </p>
-                    ) : null}
-                    {this.state.selectionError ? (
-                        <p className="booking-field-error" role="alert">
-                            {this.state.selectionError}
+                            {this.state.pending.replacement
+                                ? "Changing seat..."
+                                : this.state.pending.request.action === "reserve"
+                                  ? "Processing reservation..."
+                                  : "Processing booking update..."}
                         </p>
                     ) : null}
                     <footer className="seat-map-footer">
@@ -549,6 +755,10 @@ export class SeatSelectionScreen extends React.PureComponent<
                         </PrimaryButton>
                     </footer>
                 </section>
+                <ErrorDialog
+                    message={this.state.selectionError}
+                    onDismiss={() => this.setState({ selectionError: undefined })}
+                />
             </main>
         );
     }

@@ -3,11 +3,13 @@ import * as React from "react";
 import SearchIcon from "./assets/booking/search.svg";
 import { IEmployee } from "./BookingModels";
 import { CancelIcon } from "./CancelIcon";
+import { ErrorDialog } from "./ErrorDialog";
 
 interface IEmployeeMultiSelectProps {
     employees: IEmployee[];
     maximum: number;
     onChange: (employees: IEmployee[]) => void;
+    selectionBlockedMessage?: string;
     selectedEmployees: IEmployee[];
 }
 
@@ -26,6 +28,30 @@ export class EmployeeMultiSelect extends React.PureComponent<
         query: ""
     };
 
+    private readonly rootRef = React.createRef<HTMLElement>();
+
+    public componentDidMount(): void {
+        document.addEventListener("pointerdown", this.clearSearchWhenOutside);
+        document.addEventListener("focusin", this.clearSearchWhenOutside);
+    }
+
+    public componentWillUnmount(): void {
+        document.removeEventListener("pointerdown", this.clearSearchWhenOutside);
+        document.removeEventListener("focusin", this.clearSearchWhenOutside);
+    }
+
+    private readonly clearSearchWhenOutside = (event: Event): void => {
+        const target = event.target;
+
+        if (target instanceof Node && !this.rootRef.current?.contains(target)) {
+            this.setState((state) =>
+                state.query || state.activeResultIndex >= 0
+                    ? { activeResultIndex: -1, query: "" }
+                    : null
+            );
+        }
+    };
+
     private getResults(): IEmployee[] {
         const query = this.state.query.trim().toLowerCase();
 
@@ -42,6 +68,14 @@ export class EmployeeMultiSelect extends React.PureComponent<
     }
 
     private readonly addEmployee = (employee: IEmployee): void => {
+        if (this.props.selectionBlockedMessage) {
+            this.setState({
+                activeResultIndex: -1,
+                duplicateError: this.props.selectionBlockedMessage
+            });
+            return;
+        }
+
         const employeeIdentity =
             employee.employeeId.trim().toLowerCase() ||
             employee.email.trim().toLowerCase();
@@ -133,7 +167,7 @@ export class EmployeeMultiSelect extends React.PureComponent<
     const activeResult = results[this.state.activeResultIndex];
 
     return (
-            <section className="employee-combo" aria-labelledby="employee-combo-label">
+            <section className="employee-combo" aria-labelledby="employee-combo-label" ref={this.rootRef}>
                 <div className="employee-selection-heading">
                     <h2 id="employee-combo-label">Select Employees</h2>
                     <span>
@@ -228,11 +262,10 @@ export class EmployeeMultiSelect extends React.PureComponent<
                         Search and select at least one employee.
                     </p>
                 )}
-                {this.state.duplicateError ? (
-                    <p className="booking-field-error" role="alert">
-                        {this.state.duplicateError}
-                    </p>
-                ) : null}
+                <ErrorDialog
+                    message={this.state.duplicateError}
+                    onDismiss={() => this.setState({ duplicateError: undefined })}
+                />
             </section>
         );
     }

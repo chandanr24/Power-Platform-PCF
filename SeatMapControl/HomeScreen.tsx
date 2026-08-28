@@ -1,5 +1,13 @@
 import * as React from "react";
 
+import {
+    ISeat,
+    ISeatBooking,
+    ISeatException,
+    isActiveBooking,
+    isSeatExceptionActive,
+    normalizeDateValue
+} from "./BookingModels";
 import { CancelIcon } from "./CancelIcon";
 import ActionBookingsIcon from "./assets/home/action-bookings.svg";
 import ActionRoomIcon from "./assets/home/action-room.svg";
@@ -10,17 +18,22 @@ import BookSeatIcon from "./assets/home/book-seat.svg";
 import BookingsIcon from "./assets/home/bookings.svg";
 import HomeIcon from "./assets/home/home.svg";
 import MeetingIcon from "./assets/home/meeting.svg";
-import ProfileIcon from "./assets/home/profile.svg";
+import SignOutIcon from "./assets/home/sign-out.svg";
 
 type SvgIcon = React.ComponentType<React.SVGProps<SVGSVGElement>>;
 
 export interface IHomeScreenProps {
     allocatedHeight: number;
     allocatedWidth: number;
+    bookings: ISeatBooking[];
     canCreateBookings: boolean;
+    displayName: string;
+    exceptions: ISeatException[];
     onCancelBooking: () => void;
     onMyBookings: () => void;
     onBookSeat: () => void;
+    onSignOut: () => void;
+    seats: ISeat[];
 }
 
 interface INavigationItemProps {
@@ -67,7 +80,8 @@ export const Sidebar: React.FC<{
     onCancelBooking: () => void;
     onMyBookings: () => void;
     onBookSeat: () => void;
-}> = ({ canCreateBookings, onCancelBooking, onMyBookings, onBookSeat }) => (
+    onSignOut: () => void;
+}> = ({ canCreateBookings, onCancelBooking, onMyBookings, onBookSeat, onSignOut }) => (
     <aside className="dashboard-sidebar" aria-label="Primary navigation">
         <AvanadeLogo
             className="dashboard-brand"
@@ -86,7 +100,7 @@ export const Sidebar: React.FC<{
             <NavigationItem icon={BookRoomIcon} label="Book Room" />
             <NavigationItem icon={BookingsIcon} label="My Bookings" onClick={onMyBookings} />
             <NavigationItem icon={CancelIcon} label="Cancel Booking" onClick={onCancelBooking} />
-            <NavigationItem icon={ProfileIcon} label="Profile" />
+            <NavigationItem icon={SignOutIcon} label="Sign out" onClick={onSignOut} />
         </nav>
     </aside>
 );
@@ -132,11 +146,43 @@ export class HomeScreen extends React.PureComponent<IHomeScreenProps> {
         const {
             allocatedHeight,
             allocatedWidth,
+            bookings,
             canCreateBookings,
+            displayName,
+            exceptions,
             onCancelBooking,
             onMyBookings,
-            onBookSeat
+            onBookSeat,
+            onSignOut,
+            seats
         } = this.props;
+        const today = normalizeDateValue(new Date());
+        const seatKeys = new Set(seats.map((seat) => seat.seatKey.trim().toLowerCase()));
+        const activeTodayBookings = bookings.filter((booking) => {
+            const status = booking.status.trim().toLowerCase();
+
+            return booking.bookingDate === today &&
+                (status === "booked" || status === "selected") &&
+                isActiveBooking(booking) &&
+                seatKeys.has(booking.seatKey.trim().toLowerCase());
+        });
+        const occupiedSeatKeys = new Set(
+            activeTodayBookings.map((booking) => booking.seatKey.trim().toLowerCase())
+        );
+        const bookedSeatKeys = new Set(
+            activeTodayBookings
+                .filter((booking) => booking.status.trim().toLowerCase() === "booked")
+                .map((booking) => booking.seatKey.trim().toLowerCase())
+        );
+        const blockedSeatKeys = new Set(
+            exceptions
+                .filter((exception) => isSeatExceptionActive(exception, today))
+                .map((exception) => exception.seatKey.trim().toLowerCase())
+        );
+        const unavailableSeatKeys = new Set([...occupiedSeatKeys, ...blockedSeatKeys]);
+        const availableSeatCount = seats.filter(
+            (seat) => !unavailableSeatKeys.has(seat.seatKey.trim().toLowerCase())
+        ).length;
         const classes = ["dashboard-control"];
 
         if (allocatedWidth > 0 && allocatedWidth <= 600) {
@@ -161,23 +207,24 @@ export class HomeScreen extends React.PureComponent<IHomeScreenProps> {
                     onCancelBooking={onCancelBooking}
                     onMyBookings={onMyBookings}
                     onBookSeat={onBookSeat}
+                    onSignOut={onSignOut}
                 />
                 <main className="dashboard-main">
                     <header className="dashboard-header">
                         <div>
-                            <h1>Welcome, John Doe</h1>
+                            <h1>Welcome, {displayName}</h1>
                             <p>Here&apos;s what&apos;s happening today.</p>
                         </div>
                         <div className="seat-capacity">
                             <span>Total Seat Capacity</span>
-                            <strong>76</strong>
+                            <strong>{seats.length}</strong>
                         </div>
                     </header>
 
                     <section className="status-grid" aria-label="Today at a glance">
-                        <StatusCard label="Seat Availability" value="56" />
+                        <StatusCard label="Seat Availability" value={String(availableSeatCount)} />
                         <StatusCard label="Meetings Rooms" value="1" />
-                        <StatusCard label="Booked Seats" value="10" />
+                        <StatusCard label="Booked Seats" value={String(bookedSeatKeys.size)} />
                     </section>
 
                     <section className="dashboard-section">

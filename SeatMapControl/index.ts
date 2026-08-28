@@ -25,6 +25,7 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
     private notifyOutputChanged: () => void;
     private actionRequestJson = "";
     private actionSequence = 0;
+    private signOutSequence = 0;
     private employeePagingInitialized = false;
     private seatRangePagingInitialized = false;
     private seatExceptionPagingInitialized = false;
@@ -134,8 +135,13 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
                 previewMode
                     ? "manager@example.com"
                     : context.parameters.currentUserEmail.raw ?? "",
+            currentUserEmployeeCode:
+                previewMode
+                    ? previewEmployees[0]?.employeeId ?? ""
+                    : context.parameters.currentUserEmployeeCode.raw ?? "",
             maximumPeoplePerBooking,
             onActionRequest: this.handleActionRequest,
+            onSignOut: this.handleSignOut,
             previewMode,
             seats: previewMode
                 ? previewSeats
@@ -155,7 +161,8 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
     public getOutputs(): IOutputs {
         return {
             actionRequestJson: this.actionRequestJson,
-            actionSequence: this.actionSequence
+            actionSequence: this.actionSequence,
+            signOutSequence: this.signOutSequence
         };
     }
 
@@ -172,6 +179,11 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
     ): void => {
         this.actionRequestJson = JSON.stringify(request);
         this.actionSequence += 1;
+        this.notifyOutputChanged();
+    };
+
+    private readonly handleSignOut = (): void => {
+        this.signOutSequence += 1;
         this.notifyOutputChanged();
     };
 

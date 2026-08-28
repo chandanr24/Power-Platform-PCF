@@ -204,6 +204,22 @@ const getMappedText = (
     return "";
 };
 
+const getMappedLookupText = (
+    dataSet: DataSet,
+    record: ComponentFramework.PropertyHelper.DataSetApi.EntityRecord,
+    propertySetAlias: string
+): string => {
+    for (const columnName of getMappedColumnNames(dataSet, propertySetAlias)) {
+        const value = getLookupText(record, columnName);
+
+        if (value) {
+            return value;
+        }
+    }
+
+    return "";
+};
+
 const getMappedChoiceText = (
     dataSet: DataSet,
     record: ComponentFramework.PropertyHelper.DataSetApi.EntityRecord,
@@ -394,10 +410,10 @@ const parseBookingDataSetWithAliases = (
                 bookingId: getText(record, aliases.bookingId),
                 bookingDate: normalizeDateValue(record.getValue(aliases.bookingDate)),
                 bookingKey,
-                createdByEmail: getPersonEmail(record, aliases.createdBy),
-                employeeEmail: getPersonEmail(record, aliases.bookingEmployee),
+                createdByEmail: getMappedPersonEmail(dataSet, record, aliases.createdBy),
+                employeeEmail: getMappedPersonEmail(dataSet, record, aliases.bookingEmployee),
                 employeeId: getText(record, aliases.bookingEmployeeId),
-                employeeName: getLookupText(record, aliases.bookingEmployee),
+                employeeName: getMappedLookupText(dataSet, record, aliases.bookingEmployee),
                 expiresAt: getDateTime(record, aliases.reservationExpiresAt) || undefined,
                 floor,
                 managerEmail: getMappedPersonEmail(dataSet, record, aliases.bookingManager),

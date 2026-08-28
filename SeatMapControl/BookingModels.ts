@@ -76,6 +76,7 @@ export interface ISeatAssignment {
 }
 
 export type BookingAction =
+    | "cancelGroup"
     | "reserve"
     | "release"
     | "releaseGroup"

@@ -1,13 +1,21 @@
 import * as React from "react";
-import { DayPicker, SelectSingleEventHandler } from "react-day-picker";
+import {
+    DayPicker,
+    Matcher,
+    SelectSingleEventHandler
+} from "react-day-picker";
 
 import CalendarIcon from "./assets/booking/calendar.svg";
 
 interface IWorkingDayCalendarProps {
     id: string;
     invalid?: boolean;
+    maximumDate?: string;
+    minimumDate?: string;
     onChange: (value: string) => void;
+    placeholder?: string;
     value: string;
+    workingDaysOnly?: boolean;
 }
 
 const toLocalDateValue = (date: Date): string => {
@@ -80,14 +88,40 @@ export const getDefaultBookingDate = (): string =>
 export const WorkingDayCalendar: React.FC<IWorkingDayCalendarProps> = ({
     id,
     invalid,
+    maximumDate,
+    minimumDate,
     onChange,
-    value
+    placeholder = "Select date",
+    value,
+    workingDaysOnly = true
 }) => {
     const [open, setOpen] = React.useState(false);
     const rootRef = React.useRef<HTMLDivElement>(null);
     const selected = fromLocalDateValue(value);
-    const firstDate = getToday();
-    const lastDate = getLastSelectableDay();
+    const firstDate = minimumDate
+        ? fromLocalDateValue(minimumDate)
+        : workingDaysOnly
+          ? getToday()
+          : undefined;
+    const lastDate = maximumDate
+        ? fromLocalDateValue(maximumDate)
+        : workingDaysOnly
+          ? getLastSelectableDay()
+          : undefined;
+    const disabledDates: Matcher[] = [];
+
+    if (firstDate) {
+        disabledDates.push({ before: firstDate });
+    }
+
+    if (lastDate) {
+        disabledDates.push({ after: lastDate });
+    }
+
+    if (workingDaysOnly) {
+        disabledDates.push({ dayOfWeek: [0, 6] });
+    }
+
     React.useEffect(() => {
         if (!open) {
             return undefined;
@@ -138,7 +172,7 @@ export const WorkingDayCalendar: React.FC<IWorkingDayCalendarProps> = ({
                               month: "short",
                               year: "numeric"
                           }).format(selected)
-                        : "Select date"}
+                        : placeholder}
                 </span>
                 <CalendarIcon aria-hidden="true" focusable="false" />
             </button>
@@ -146,15 +180,11 @@ export const WorkingDayCalendar: React.FC<IWorkingDayCalendarProps> = ({
                 <div
                     className="working-day-calendar-popover"
                     role="dialog"
-                    aria-label="Choose booking date"
+                    aria-label="Choose date"
                 >
                     <DayPicker
-                        defaultMonth={selected ?? firstDate}
-                        disabled={[
-                            { before: firstDate },
-                            { after: lastDate },
-                            { dayOfWeek: [0, 6] }
-                        ]}
+                        defaultMonth={selected ?? firstDate ?? getToday()}
+                        disabled={disabledDates}
                         fromDate={firstDate}
                         mode="single"
                         selected={selected}

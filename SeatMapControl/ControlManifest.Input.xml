@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest>
 
-  <control namespace="SeatBooking" constructor="SeatMapControl" version="1.3.25" display-name-key="SeatMapControl" description-key="SeatMapControl description" control-type="virtual" >
+  <control namespace="SeatBooking" constructor="SeatMapControl" version="1.3.35" display-name-key="SeatMapControl" description-key="SeatMapControl description" control-type="virtual" >
     <property name="previewMode" display-name-key="Preview_Mode" description-key="Temporary local screen preview without Canvas or SharePoint writes; keep false in production" of-type="TwoOptions" usage="input" required="false" />
     <property name="currentUserEmail" display-name-key="Current_User_Email" description-key="Email of the signed-in Canvas app user" of-type="SingleLine.Text" usage="input" required="false" />
+    <property name="currentUserEmployeeCode" display-name-key="Current_User_Employee_Code" description-key="EmpCode of the signed-in Canvas app user" of-type="SingleLine.Text" usage="input" required="false" />
     <property name="canCreateBookings" display-name-key="Can_Create_Bookings" description-key="Whether the current user may create seat bookings" of-type="TwoOptions" usage="input" required="false" />
     <property name="canBookForAnyone" display-name-key="Can_Book_For_Anyone" description-key="Whether the current user may select any employee" of-type="TwoOptions" usage="input" required="false" />
     <property name="maximumPeoplePerBooking" display-name-key="Maximum_People_Per_Booking" description-key="Maximum employees allowed in one booking" of-type="Whole.None" usage="input" required="false" />
@@ -12,6 +13,7 @@
     <property name="actionResultJson" display-name-key="Action_Result_JSON" description-key="Result returned by Canvas after handling the latest action request" of-type="Multiple" usage="input" required="false" />
     <property name="actionRequestJson" display-name-key="Action_Request_JSON" description-key="Booking action requested by the React control" of-type="Multiple" usage="output" required="false" />
     <property name="actionSequence" display-name-key="Action_Sequence" description-key="Incrementing value used to trigger the Canvas OnChange formula" of-type="Whole.None" usage="output" required="false" />
+    <property name="signOutSequence" display-name-key="Sign_Out_Sequence" description-key="Incrementing value used to request Power Apps sign-out" of-type="Whole.None" usage="output" required="false" />
     <!--external-service-usage node declares whether this 3rd party PCF control is using external service or not, if yes, this control will be considered as premium and please also add the external domain it is using.
     If it is not using any external service, please set the enabled="false" and DO NOT add any domain below. The "enabled" will be false by default.
     Example1:
@@ -103,6 +105,7 @@
       <css path="css/BookingConfirmationScreen.css" order="5" />
       <css path="css/CancelBookingScreen.css" order="6" />
       <css path="css/MyBookingsScreen.css" order="7" />
+      <css path="css/ErrorDialog.css" order="8" />
       <platform-library name="React" version="16.14.0" />
       <platform-library name="Fluent" version="9.46.2" />
       <!-- UNCOMMENT TO ADD MORE RESOURCES
