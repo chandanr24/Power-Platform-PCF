@@ -9,13 +9,19 @@ import {
     IBookingAccess,
     IBookingSelection,
     IEmployee,
+    IMeetingRoom,
+    IMeetingRoomActionRequest,
+    IMeetingRoomActionResult,
+    IMeetingRoomBooking,
     ISeat,
     ISeatAssignment,
     ISeatBooking,
     ISeatException
 } from "./BookingModels";
 import { HomeScreen } from "./HomeScreen";
+import { ErrorDialog } from "./ErrorDialog";
 import { LoginScreen } from "./LoginScreen";
+import { MeetingRoomBookingScreen } from "./MeetingRoomBookingScreen";
 import { MyBookingsScreen } from "./MyBookingsScreen";
 import { SeatSelectionScreen } from "./SeatSelectionScreen";
 
@@ -28,6 +34,7 @@ export interface IAppProps {
     myBookings: ISeatBooking[];
     myBookingsPageSize?: number;
     canBookForAnyone: boolean;
+    canBookMeetingRooms: boolean;
     canCreateBookings: boolean;
     cancelBookingVisibleRecordCount?: number;
     currentUserEmail: string;
@@ -35,7 +42,11 @@ export interface IAppProps {
     employees: IEmployee[];
     exceptions: ISeatException[];
     maximumPeoplePerBooking: number;
+    meetingRoomActionResult?: IMeetingRoomActionResult;
+    meetingRoomBookings: IMeetingRoomBooking[];
+    meetingRooms: IMeetingRoom[];
     onActionRequest: (request: IBookingActionRequest) => void;
+    onMeetingRoomActionRequest: (request: IMeetingRoomActionRequest) => void;
     onSignOut: () => void;
     previewMode: boolean;
     seats: ISeat[];
@@ -46,7 +57,9 @@ interface IAppState {
     bookingSelection?: IBookingSelection;
     confirmedAssignments?: ISeatAssignment[];
     previewActionResult?: IBookingActionResult;
-    screen: "home" | "bookSeat" | "seatSelection" | "confirmation" | "cancelBooking" | "myBookings";
+    previewMeetingRoomActionResult?: IMeetingRoomActionResult;
+    authorizationError?: string;
+    screen: "home" | "bookSeat" | "seatSelection" | "confirmation" | "cancelBooking" | "myBookings" | "meetingRoom";
 }
 
 export class App extends React.PureComponent<IAppProps, IAppState> {
@@ -70,6 +83,7 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
                 bookingSelection: undefined,
                 confirmedAssignments: undefined,
                 previewActionResult: undefined,
+                previewMeetingRoomActionResult: undefined,
                 screen: "home"
             },
             this.props.onSignOut
@@ -82,6 +96,21 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
             confirmedAssignments: undefined,
             previewActionResult: undefined,
             screen: "bookSeat"
+        });
+    };
+
+    private readonly handleBookMeetingRoom = (): void => {
+        if (!this.props.canBookMeetingRooms) {
+            this.setState({
+                authorizationError: "You are not authorized to book meeting rooms."
+            });
+            return;
+        }
+
+        this.setState({
+            authorizationError: undefined,
+            previewMeetingRoomActionResult: undefined,
+            screen: "meetingRoom"
         });
     };
 
@@ -98,6 +127,7 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
             bookingSelection: undefined,
             confirmedAssignments: undefined,
             previewActionResult: undefined,
+            previewMeetingRoomActionResult: undefined,
             screen: "home"
         });
     };
@@ -161,6 +191,25 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
         }, 150);
     };
 
+    private readonly handleMeetingRoomActionRequest = (
+        request: IMeetingRoomActionRequest
+    ): void => {
+        if (!this.props.previewMode) {
+            this.props.onMeetingRoomActionRequest(request);
+            return;
+        }
+
+        window.setTimeout(() => {
+            this.setState({
+                previewMeetingRoomActionResult: {
+                    action: "bookMeetingRoom",
+                    requestId: request.requestId,
+                    success: true
+                }
+            });
+        }, 150);
+    };
+
     public render(): React.ReactNode {
         const {
             allocatedHeight,
@@ -170,6 +219,7 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
             myBookings,
             myBookingsPageSize,
             canBookForAnyone,
+            canBookMeetingRooms,
             canCreateBookings,
             cancelBookingVisibleRecordCount,
             currentUserEmail,
@@ -177,6 +227,8 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
             employees,
             exceptions,
             maximumPeoplePerBooking,
+            meetingRoomBookings,
+            meetingRooms,
             previewMode,
             seats
         } = this.props;
@@ -265,6 +317,26 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
                 );
             }
 
+            if (this.state.screen === "meetingRoom") {
+                return (
+                    <MeetingRoomBookingScreen
+                        actionResult={
+                            previewMode
+                                ? this.state.previewMeetingRoomActionResult
+                                : this.props.meetingRoomActionResult
+                        }
+                        allocatedHeight={allocatedHeight}
+                        allocatedWidth={allocatedWidth}
+                        bookings={meetingRoomBookings}
+                        employees={employees}
+                        onActionRequest={this.handleMeetingRoomActionRequest}
+                        onBack={this.handleBackToHome}
+                        previewMode={previewMode}
+                        rooms={meetingRooms}
+                    />
+                );
+            }
+
 
             if (this.state.screen === "myBookings") {
                 return (
@@ -273,9 +345,12 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
                         allocatedWidth={allocatedWidth}
                         bookingAccess={bookingAccess}
                         bookings={myBookings}
+                        canBookMeetingRooms={canBookMeetingRooms}
                         currentUserEmail={currentUserEmail}
                         currentUserEmployeeCode={currentUserEmployeeCode}
                         employees={employees}
+                        meetingRoomBookings={meetingRoomBookings}
+                        meetingRooms={meetingRooms}
                         myBookingsPageSize={myBookingsPageSize}
                         onBack={this.handleBackToHome}
                     />
@@ -286,19 +361,30 @@ export class App extends React.PureComponent<IAppProps, IAppState> {
             }
 
             return (
-                <HomeScreen
-                    allocatedHeight={allocatedHeight}
-                    allocatedWidth={allocatedWidth}
-                    bookings={bookings}
-                    canCreateBookings={canCreateBookings}
-                    displayName={displayName}
-                    exceptions={exceptions}
-                    onCancelBooking={this.handleCancelBooking}
-                    onMyBookings={this.handleMyBookings}
-                    onBookSeat={this.handleBookSeat}
-                    onSignOut={this.handleSignOut}
-                    seats={seats}
-                />
+                <React.Fragment>
+                    <HomeScreen
+                        allocatedHeight={allocatedHeight}
+                        allocatedWidth={allocatedWidth}
+                        bookings={bookings}
+                        canCreateBookings={canCreateBookings}
+                        displayName={displayName}
+                        exceptions={exceptions}
+                        meetingRoomBookings={meetingRoomBookings}
+                        meetingRooms={meetingRooms}
+                        onBookMeetingRoom={this.handleBookMeetingRoom}
+                        onCancelBooking={this.handleCancelBooking}
+                        onMyBookings={this.handleMyBookings}
+                        onBookSeat={this.handleBookSeat}
+                        onSignOut={this.handleSignOut}
+                        seats={seats}
+                    />
+                    <ErrorDialog
+                        message={this.state.authorizationError}
+                        onDismiss={() =>
+                            this.setState({ authorizationError: undefined })
+                        }
+                    />
+                </React.Fragment>
             );
         }
 

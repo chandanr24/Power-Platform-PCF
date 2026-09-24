@@ -285,3 +285,31 @@
         flex-wrap: wrap;
     }
 }
+
+.my-bookings-toggle {
+    display: inline-flex;
+    align-self: flex-start;
+    flex: 0 0 auto;
+    gap: 4px;
+    margin: -8px 0 22px;
+    padding: 4px;
+    border-radius: 10px;
+    background: #f1f5f9;
+}
+
+.my-bookings-toggle button {
+    min-height: 36px;
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    font: 700 13px Inter, "Segoe UI", Arial;
+}
+
+.my-bookings-toggle .my-bookings-toggle--active {
+    background: #ff5800;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgb(255 88 0 / 22%);
+}

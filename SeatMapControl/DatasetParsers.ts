@@ -2,6 +2,8 @@ import {
     createSeatKey,
     IEmployee,
     IBookingAccess,
+    IMeetingRoom,
+    IMeetingRoomBooking,
     ISeat,
     ISeatBooking,
     ISeatException,
@@ -470,6 +472,47 @@ export const parseBookingDataSet = (dataSet: DataSet): ISeatBooking[] =>
 
 export const parseMyBookingsDataSet = (dataSet: DataSet): ISeatBooking[] =>
     parseBookingDataSetWithAliases(dataSet, historyBookingAliases);
+
+export const parseMeetingRoomDataSet = (dataSet: DataSet): IMeetingRoom[] =>
+    dataSet.sortedRecordIds
+        .map((id) => dataSet.records[id])
+        .filter(Boolean)
+        .map((record) => ({
+            capacity: getWholeNumber(record, "meetingRoomCapacity"),
+            floor: getChoiceText(record, "meetingRoomFloor"),
+            roomId: getText(record, "meetingRoomId"),
+            roomKey: getText(record, "meetingRoomKey"),
+            roomName: getText(record, "meetingRoomName"),
+            status: getChoiceText(record, "meetingRoomStatus"),
+            zone: getChoiceText(record, "meetingRoomZone")
+        }))
+        .filter((room) => Boolean(room.roomKey && room.roomName && room.floor && room.zone));
+
+export const parseMeetingRoomBookingDataSet = (
+    dataSet: DataSet
+): IMeetingRoomBooking[] =>
+    dataSet.sortedRecordIds
+        .map((id) => dataSet.records[id])
+        .filter(Boolean)
+        .map((record) => ({
+            bookedByEmail: getMappedPersonEmail(
+                dataSet,
+                record,
+                "meetingBookingBookedBy"
+            ),
+            bookingId: getText(record, "meetingBookingId"),
+            bookingDate: normalizeDateValue(record.getValue("meetingBookingDate")),
+            endTime: getText(record, "meetingBookingEndTime"),
+            practice: getMappedChoiceText(
+                dataSet,
+                record,
+                "meetingBookingPractice"
+            ),
+            roomKey: getText(record, "meetingBookingRoomKey"),
+            startTime: getText(record, "meetingBookingStartTime"),
+            status: getChoiceText(record, "meetingBookingStatus")
+        }))
+        .filter((booking) => Boolean(booking.bookingDate && booking.roomKey));
 export const parseBookingAccessDataSet = (dataSet: DataSet): IBookingAccess[] =>
     dataSet.sortedRecordIds
         .map((id) => dataSet.records[id])

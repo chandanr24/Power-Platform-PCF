@@ -506,11 +506,16 @@ The flow should:
 
 1. Get the matching Employees record using `EmpCode = EmployeeId`.
 2. Read `EmployeeMail.Email` from that record.
-3. Send the confirmation email using that address.
+3. Get the matching SeatBookings record using the unique `BookingKey` and read
+   its SharePoint `Created By` (`Author`) Person value.
+4. Send the confirmation email to the employee and include the `Created By`
+   display name or email as **Booked by**.
 
 Do not call the flow for `reserve`, `release`, or expired reservations. The PCF
 does not pass employee email; the backend lookup makes the Employees list the
-source of truth for notifications.
+source of truth for notifications. No separate `BookedBy` column is required:
+the user who created the temporary SeatBookings record remains its SharePoint
+`Created By` user when that record is confirmed.
 
 ## Cancellation email flow
 
@@ -536,11 +541,20 @@ successful records; each item includes `bookingId`, `bookingKey`, `employeeId`,
 `employeeName`, `bookingDate`, `seatNumber`, `floor`, and `zone`.
 
 The flow must parse that array, then for each item get the SeatBookings row by
-`bookingId`, read the Employee Person column email, and send one cancellation
-email containing the employee name, booking date, seat, floor, and zone. The
-flow does not change Booking Status or BookingKey; those updates remain in the
-Power Apps formula. Do not call the flow for failed updates, temporary releases,
-or expired reservations.
+`bookingId`. Read the Employee Person column email for the recipient, `Created
+By` (`Author`) for **Booked by**, and `Modified By` (`Editor`) for **Cancelled
+by**. Send one cancellation email containing those audit values together with
+the employee name, booking date, seat, floor, and zone.
+
+Call the flow only after Power Apps successfully patches the row to `Cancelled`.
+That cancellation patch makes the signed-in Canvas user the SharePoint
+`Modified By` user. The flow must get the row immediately after the patch,
+because any later update can replace `Modified By`. If a flow or service account
+performs the cancellation update instead of the signed-in user's Power Apps
+connection, `Modified By` will identify that service account. The flow does not
+change Booking Status or BookingKey; those updates remain in the Power Apps
+formula. Do not call the flow for failed updates, temporary releases, or expired
+reservations. No separate `BookedBy` or `CancelledBy` columns are required.
 
 PCF deployment version `1.3.35` contains the Cancel Booking checkbox
 multi-selection UI and the `cancelGroup` request. After importing this version,
@@ -715,3 +729,169 @@ recommended for compact Canvas layouts.
 
 When creating a SeatBookings record, resolve the employee by EmpCode and write
 `Manager` and `Practice` together with the existing EmployeeId snapshot.
+
+## Meeting Room Booking
+
+On the Choose Room step, clicking anywhere in the Start Time or End Time field opens the rounded, orange-accented PCF time picker. Its Apply action keeps the existing 24-hour `HH:mm` value contract. Clicking outside closes an unfinished picker. The meeting-room search text clears when focus moves to another control or area; an already selected room remains selected.
+
+The Meeting Room Booking feature uses its own datasets and action properties;
+it does not add room operations to the existing seat `actionRequestJson`.
+The screen has three steps:
+
+1. Select Date, Floor, Zone, and Team. The Team values come from the existing
+   Employees `Practice` Choice column; no separate Team list is required.
+2. Select Start Time and End Time, search the available rooms, and select one
+   room. Capacity is displayed for guidance only and never blocks selection.
+3. Review the details and submit the room booking.
+
+### MeetingRooms list
+
+Create a SharePoint list named `MeetingRooms` with these columns:
+
+| Display name | Type | Notes |
+| --- | --- | --- |
+| `Title` | Single line of text | Room display name |
+| `RoomKey` | Single line of text | Required, unique and stable |
+| `Floor` | Choice | Use the same floor choices as the seat configuration |
+| `Zone` | Choice | Use the same zone choices as the seat configuration |
+| `Capacity` | Number, whole | Display-only room capacity |
+| `Status` | Choice | `Active` or `Inactive` |
+
+Map `meetingRoomsDataSet_Items` as follows:
+
+| PCF property | MeetingRooms column |
+| --- | --- |
+| `meetingRoomId` | `ID` |
+| `meetingRoomKey` | `RoomKey` |
+| `meetingRoomName` | `Title` |
+| `meetingRoomFloor` | `Floor` |
+| `meetingRoomZone` | `Zone` |
+| `meetingRoomCapacity` | `Capacity` |
+| `meetingRoomStatus` | `Status` |
+
+### MeetingRoomBookings list
+
+Create a SharePoint list named `MeetingRoomBookings` with these columns:
+
+| Display name | Type | Notes |
+| --- | --- | --- |
+| `Title` | Single line of text | Booking key or descriptive title |
+| `BookingDate` | Date only | Selected meeting date |
+| `StartTime` | Single line of text | Store PCF `HH:mm` value |
+| `EndTime` | Single line of text | Store PCF `HH:mm` value |
+| `RoomKey` | Single line of text | Snapshot from MeetingRooms |
+| `RoomName` | Single line of text | Display-name snapshot |
+| `Floor` | Choice | Floor snapshot |
+| `Zone` | Choice | Zone snapshot |
+| `Practice` | Choice | Team selected on the screen |
+| `Capacity` | Number, whole | Display-only capacity snapshot |
+| `BookedBy` | Person, single selection | Signed-in user |
+| `Status` | Choice | `Booked` or `Cancelled` |
+
+Map `meetingRoomBookingsDataSet_Items` as follows:
+
+| PCF property | MeetingRoomBookings column |
+| --- | --- |
+| `meetingBookingId` | `ID` |
+| `meetingBookingDate` | `BookingDate` |
+| `meetingBookingRoomKey` | `RoomKey` |
+| `meetingBookingStartTime` | `StartTime` |
+| `meetingBookingEndTime` | `EndTime` |
+| `meetingBookingStatus` | `Status` |
+| `meetingBookingPractice` | `Practice` |
+| `meetingBookingBookedBy` | `BookedBy` |
+
+The PCF uses these mapped booking rows to hide a room when an existing active
+booking overlaps the selected interval. Canvas must repeat the overlap check
+immediately before `Patch`, because browser filtering is not a concurrency or
+security boundary. Two intervals overlap when:
+
+```powerfx
+StartTime < varRequestedEndTime && EndTime > varRequestedStartTime
+```
+
+Index `BookingDate`, `RoomKey`, and `Status` in SharePoint. Filter the mapped
+dataset to the date range required by the app rather than loading unlimited
+room-booking history.
+
+The Home dashboard uses these mapped rows to show only today's meetings whose
+end time has not passed. It excludes completed, Cancelled, Rejected, past-day,
+and future-day meetings. Available and occupied meeting-room counts use the
+current local time.
+
+My Bookings shows its Seat Bookings / Room Bookings toggle only when
+`canBookMeetingRooms` is true. Employees without that permission retain the
+seat-only view. Room history includes past, current, future, and cancelled
+records. HR can view all room history, Practice Leads can view assigned-team
+history, and other authorized room bookers see records created by their mapped
+`BookedBy` account.
+
+### Authorization
+
+Bind the new `canBookMeetingRooms` input to a server-evaluated formula. The
+following example authorizes direct managers plus Team Lead, Practice Lead,
+and HR access records:
+
+```powerfx
+!IsBlank(
+    LookUp(
+        Employees,
+        Manager.Email = User().Email,
+        ID
+    )
+) ||
+!IsBlank(
+    LookUp(
+        BookingAccess,
+        User.Email = User().Email &&
+        (
+            Role.Value = "Team Lead" ||
+            Role.Value = "Practice Lead" ||
+            Role.Value = "HR"
+        ),
+        ID
+    )
+)
+```
+
+Replace `User`, `Role`, or their internal names only if those columns have
+different names in your BookingAccess list. An unauthorized click on either
+Home entry displays `You are not authorized to book meeting rooms` and does
+not navigate. Repeat this authorization in the Canvas write formula and in
+SharePoint permissions; the PCF dialog alone is not a security boundary.
+
+### Meeting-room action properties
+
+Bind these new properties:
+
+```powerfx
+meetingRoomActionResultJson = varMeetingRoomActionResult
+```
+
+Read these outputs in `SeatMapControl1.OnChange`:
+
+- `meetingRoomActionRequestJson`
+- `meetingRoomActionSequence`
+
+Keep a separate handled sequence such as
+`varHandledMeetingRoomActionSequence`. When it increments, parse the request,
+recheck authorization and overlapping `Booked` records, patch one
+MeetingRoomBookings row, refresh the dataset, and return a result with the same
+request ID:
+
+```json
+{
+  "action": "bookMeetingRoom",
+  "requestId": "request-id-from-the-command",
+  "success": true
+}
+```
+
+For failure, return `success: false` and an `error` message. The PCF remains on
+the review step and shows that message for five seconds. A successful matching
+result changes the review step to `Meeting room booked`.
+
+The room request contains `bookingDate`, `startTime`, `endTime`, `floor`,
+`zone`, `practice`, `roomKey`, `roomName`, and display-only `roomCapacity` under
+its `meeting` object. Existing seat actions and their property names remain
+unchanged.

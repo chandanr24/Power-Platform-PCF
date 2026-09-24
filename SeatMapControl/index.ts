@@ -2,18 +2,24 @@ import { IInputs, IOutputs } from "./generated/ManifestTypes";
 import { App, IAppProps } from "./App";
 import {
     IBookingActionRequest,
-    parseActionResult
+    IMeetingRoomActionRequest,
+    parseActionResult,
+    parseMeetingRoomActionResult
 } from "./BookingModels";
 import {
     parseBookingDataSet,
     parseBookingAccessDataSet,
     parseMyBookingsDataSet,
+    parseMeetingRoomBookingDataSet,
+    parseMeetingRoomDataSet,
     parseEmployeeDataSet,
     parseSeatExceptionDataSet,
     parseSeatRangeDataSet
 } from "./DatasetParsers";
 import {
     previewEmployees,
+    previewMeetingRoomBookings,
+    previewMeetingRooms,
     previewSeatExceptions,
     previewSeats
 } from "./PreviewData";
@@ -25,6 +31,8 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
     private notifyOutputChanged: () => void;
     private actionRequestJson = "";
     private actionSequence = 0;
+    private meetingRoomActionRequestJson = "";
+    private meetingRoomActionSequence = 0;
     private signOutSequence = 0;
     private employeePagingInitialized = false;
     private seatRangePagingInitialized = false;
@@ -32,6 +40,8 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
     private bookingPagingInitialized = false;
     private myBookingsPagingInitialized = false;
     private bookingAccessPagingInitialized = false;
+    private meetingRoomPagingInitialized = false;
+    private meetingRoomBookingPagingInitialized = false;
 
     /**
      * Empty constructor.
@@ -77,6 +87,14 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
             this.bookingAccessPagingInitialized = this.initializeDataSetPaging(
                 context.parameters.bookingAccessDataSet,
                 this.bookingAccessPagingInitialized
+            );
+            this.meetingRoomPagingInitialized = this.initializeDataSetPaging(
+                context.parameters.meetingRoomsDataSet,
+                this.meetingRoomPagingInitialized
+            );
+            this.meetingRoomBookingPagingInitialized = this.initializeDataSetPaging(
+                context.parameters.meetingRoomBookingsDataSet,
+                this.meetingRoomBookingPagingInitialized
             );
             this.employeePagingInitialized = this.initializeDataSetPaging(
                 context.parameters.employeesDataSet,
@@ -126,6 +144,9 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
             canBookForAnyone:
                 previewMode ||
                 (context.parameters.canBookForAnyone.raw ?? false),
+            canBookMeetingRooms:
+                previewMode ||
+                (context.parameters.canBookMeetingRooms.raw ?? false),
             cancelBookingVisibleRecordCount:
                 context.parameters.cancelBookingVisibleRecordCount.raw ?? undefined,
             canCreateBookings:
@@ -140,7 +161,19 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
                     ? previewEmployees[0]?.employeeId ?? ""
                     : context.parameters.currentUserEmployeeCode.raw ?? "",
             maximumPeoplePerBooking,
+            meetingRoomActionResult: parseMeetingRoomActionResult(
+                context.parameters.meetingRoomActionResultJson.raw
+            ),
+            meetingRoomBookings: previewMode
+                ? previewMeetingRoomBookings
+                : parseMeetingRoomBookingDataSet(
+                      context.parameters.meetingRoomBookingsDataSet
+                  ),
+            meetingRooms: previewMode
+                ? previewMeetingRooms
+                : parseMeetingRoomDataSet(context.parameters.meetingRoomsDataSet),
             onActionRequest: this.handleActionRequest,
+            onMeetingRoomActionRequest: this.handleMeetingRoomActionRequest,
             onSignOut: this.handleSignOut,
             previewMode,
             seats: previewMode
@@ -162,6 +195,8 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
         return {
             actionRequestJson: this.actionRequestJson,
             actionSequence: this.actionSequence,
+            meetingRoomActionRequestJson: this.meetingRoomActionRequestJson,
+            meetingRoomActionSequence: this.meetingRoomActionSequence,
             signOutSequence: this.signOutSequence
         };
     }
@@ -184,6 +219,14 @@ export class SeatMapControl implements ComponentFramework.ReactControl<IInputs, 
 
     private readonly handleSignOut = (): void => {
         this.signOutSequence += 1;
+        this.notifyOutputChanged();
+    };
+
+    private readonly handleMeetingRoomActionRequest = (
+        request: IMeetingRoomActionRequest
+    ): void => {
+        this.meetingRoomActionRequestJson = JSON.stringify(request);
+        this.meetingRoomActionSequence += 1;
         this.notifyOutputChanged();
     };
 

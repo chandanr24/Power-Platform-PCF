@@ -3,19 +3,28 @@ import * as React from "react";
 import {
     IBookingAccess,
     IEmployee,
+    IMeetingRoom,
+    IMeetingRoomBooking,
     ISeatBooking,
     normalizeEmail
 } from "./BookingModels";
 import { WorkingDayCalendar } from "./WorkingDayCalendar";
+import {
+    BookingTypeToggle,
+    RoomBookingsHistory
+} from "./RoomBookingsHistory";
 
 export interface IMyBookingsScreenProps {
     allocatedHeight: number;
     allocatedWidth: number;
     bookingAccess: IBookingAccess[];
     bookings: ISeatBooking[];
+    canBookMeetingRooms: boolean;
     currentUserEmail: string;
     currentUserEmployeeCode: string;
     employees: IEmployee[];
+    meetingRoomBookings: IMeetingRoomBooking[];
+    meetingRooms: IMeetingRoom[];
     myBookingsPageSize?: number;
     onBack: () => void;
 }
@@ -44,12 +53,16 @@ export const MyBookingsScreen: React.FC<IMyBookingsScreenProps> = ({
     allocatedWidth,
     bookingAccess,
     bookings,
+    canBookMeetingRooms,
     currentUserEmail,
     currentUserEmployeeCode,
     employees,
+    meetingRoomBookings,
+    meetingRooms,
     myBookingsPageSize,
     onBack
 }) => {
+    const [bookingView, setBookingView] = React.useState<"seat" | "room">("seat");
     const [dateFrom, setDateFrom] = React.useState("");
     const [dateTo, setDateTo] = React.useState("");
     const [employeeSearch, setEmployeeSearch] = React.useState("");
@@ -162,9 +175,31 @@ export const MyBookingsScreen: React.FC<IMyBookingsScreenProps> = ({
     const firstRecord = filteredBookings.length ? (configuredPageSize ? (activePage - 1) * configuredPageSize + 1 : 1) : 0;
     const lastRecord = configuredPageSize ? Math.min(activePage * configuredPageSize, filteredBookings.length) : filteredBookings.length;
 
+    if (bookingView === "room" && canBookMeetingRooms) {
+        return (
+            <RoomBookingsHistory
+                allocatedHeight={allocatedHeight}
+                allocatedWidth={allocatedWidth}
+                bookingAccess={bookingAccess}
+                currentUserEmail={currentUserEmail}
+                meetingRoomBookings={meetingRoomBookings}
+                meetingRooms={meetingRooms}
+                onBack={onBack}
+                onShowSeatBookings={() => setBookingView("seat")}
+            />
+        );
+    }
+
     return <div className={classes.join(" ")} style={style}>
         <main className="my-bookings-card">
             <header className="my-bookings-header"><button type="button" aria-label="Back to home" onClick={onBack}>←</button><div><h1>My Bookings</h1><p>{accessLevel === "hr" ? "All booking history" : accessLevel === "practiceLead" ? "Booking history for your assigned teams" : accessLevel === "manager" ? "Your and your direct reporters' booking history" : "Your booking history"}</p></div></header>
+            {canBookMeetingRooms ? (
+                <BookingTypeToggle
+                    activeView="seat"
+                    onShowRoomBookings={() => setBookingView("room")}
+                    onShowSeatBookings={() => setBookingView("seat")}
+                />
+            ) : null}
             <section className="my-bookings-filters" aria-label="Booking filters">
                 <label>
                     From date

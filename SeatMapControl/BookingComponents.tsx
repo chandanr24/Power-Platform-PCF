@@ -5,6 +5,7 @@ import StepCheckIcon from "./assets/booking/step-check.svg";
 
 interface IBookingProgressProps {
     activeStep: 1 | 2 | 3;
+    labels?: readonly [string, string, string];
 }
 
 interface IBookingDropdownProps {
@@ -204,10 +205,11 @@ export const BookingDropdown: React.FC<IBookingDropdownProps> = ({
 };
 
 export const BookingProgress: React.FC<IBookingProgressProps> = ({
-    activeStep
+    activeStep,
+    labels = steps
 }) => (
     <ol className="booking-progress" aria-label="Booking progress">
-        {steps.map((label, index) => {
+        {labels.map((label, index) => {
             const stepNumber = index + 1;
             const active = stepNumber === activeStep;
             const complete = stepNumber < activeStep || active;

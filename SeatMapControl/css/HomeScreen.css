@@ -140,7 +140,7 @@
 
 .status-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 20px;
 }
 
@@ -238,6 +238,18 @@
     font-weight: 600;
 }
 
+.section-heading > span {
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.meeting-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 .meeting-card {
     display: flex;
     align-items: center;
@@ -272,6 +284,11 @@
     line-height: 20px;
 }
 
+.meeting-card-details {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
 .meeting-card p {
     color: #64748b;
     font-size: 12px;
@@ -282,6 +299,30 @@
 .meeting-card p span {
     margin-inline: 4px;
     color: #cbd5e1;
+}
+
+.meeting-state {
+    flex: 0 0 auto;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.meeting-state--active {
+    background: #fff1e8;
+    color: #c2410c;
+}
+
+.meeting-empty {
+    padding: 24px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    color: #64748b;
+    font-size: 13px;
+    text-align: center;
 }
 
 .dashboard-control--compact .dashboard-sidebar {
@@ -328,6 +369,11 @@
 }
 
 .dashboard-control--tablet .quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-control--compact .status-grid,
+.dashboard-control--tablet .status-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -402,6 +448,10 @@
 
 .dashboard-control--mobile .meeting-card {
     align-items: flex-start;
+}
+
+.dashboard-control--mobile .meeting-state {
+    align-self: flex-start;
 }
 
 .dashboard-control--mobile .meeting-card p {

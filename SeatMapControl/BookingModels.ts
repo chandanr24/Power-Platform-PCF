@@ -56,6 +56,37 @@ export interface ISeatBooking {
     zone: string;
 }
 
+export interface IMeetingRoom {
+    capacity: number;
+    floor: string;
+    roomId: string;
+    roomKey: string;
+    roomName: string;
+    status: string;
+    zone: string;
+}
+
+export interface IMeetingRoomBooking {
+    bookedByEmail: string;
+    bookingId: string;
+    bookingDate: string;
+    endTime: string;
+    practice: string;
+    roomKey: string;
+    startTime: string;
+    status: string;
+}
+
+export interface IMeetingRoomSelection {
+    date: string;
+    endTime: string;
+    floor: string;
+    practice: string;
+    room: IMeetingRoom;
+    startTime: string;
+    zone: string;
+}
+
 export interface IBookingFilters {
     date: string;
     floor: string;
@@ -111,6 +142,59 @@ export interface IBookingActionResult {
     requestId: string;
     success: boolean;
 }
+
+export interface IMeetingRoomActionRequest {
+    action: "bookMeetingRoom";
+    meeting: {
+        bookingDate: string;
+        endTime: string;
+        floor: string;
+        practice: string;
+        roomCapacity: number;
+        roomKey: string;
+        roomName: string;
+        startTime: string;
+        zone: string;
+    };
+    requestId: string;
+}
+
+export interface IMeetingRoomActionResult {
+    action: "bookMeetingRoom";
+    error?: string;
+    requestId: string;
+    success: boolean;
+}
+
+export const parseMeetingRoomActionResult = (
+    value: string | null
+): IMeetingRoomActionResult | undefined => {
+    if (!value?.trim()) {
+        return undefined;
+    }
+
+    try {
+        const parsed: unknown = JSON.parse(value);
+
+        if (typeof parsed !== "object" || parsed === null) {
+            return undefined;
+        }
+
+        const result = parsed as Record<string, unknown>;
+
+        if (
+            result.action !== "bookMeetingRoom" ||
+            typeof result.requestId !== "string" ||
+            typeof result.success !== "boolean"
+        ) {
+            return undefined;
+        }
+
+        return parsed as IMeetingRoomActionResult;
+    } catch {
+        return undefined;
+    }
+};
 
 export const normalizeDateValue = (value: unknown): string => {
     if (value instanceof Date && !Number.isNaN(value.getTime())) {

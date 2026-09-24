@@ -1,6 +1,8 @@
 import * as React from "react";
 
 import {
+    IMeetingRoom,
+    IMeetingRoomBooking,
     ISeat,
     ISeatBooking,
     ISeatException,
@@ -29,6 +31,9 @@ export interface IHomeScreenProps {
     canCreateBookings: boolean;
     displayName: string;
     exceptions: ISeatException[];
+    meetingRoomBookings: IMeetingRoomBooking[];
+    meetingRooms: IMeetingRoom[];
+    onBookMeetingRoom: () => void;
     onCancelBooking: () => void;
     onMyBookings: () => void;
     onBookSeat: () => void;
@@ -56,6 +61,23 @@ interface IQuickActionProps {
     onClick?: () => void;
 }
 
+interface IMeetingCardProps {
+    booking: IMeetingRoomBooking;
+    inProgress: boolean;
+    roomName: string;
+}
+
+const formatTime = (value: string): string => {
+    const [rawHour, minute] = value.split(":");
+    const hour = Number(rawHour);
+
+    if (!Number.isInteger(hour) || !minute) {
+        return value;
+    }
+
+    return `${hour % 12 || 12}:${minute} ${hour >= 12 ? "PM" : "AM"}`;
+};
+
 export const NavigationItem: React.FC<INavigationItemProps> = ({
     active,
     disabled,
@@ -64,10 +86,10 @@ export const NavigationItem: React.FC<INavigationItemProps> = ({
     onClick
 }) => (
     <button
-        className={`dashboard-nav-item${active ? " dashboard-nav-item--active" : ""}`}
-        type="button"
         aria-current={active ? "page" : undefined}
+        className={`dashboard-nav-item${active ? " dashboard-nav-item--active" : ""}`}
         disabled={disabled}
+        type="button"
         onClick={onClick}
     >
         {Icon ? <Icon aria-hidden="true" focusable="false" /> : null}
@@ -77,17 +99,25 @@ export const NavigationItem: React.FC<INavigationItemProps> = ({
 
 export const Sidebar: React.FC<{
     canCreateBookings: boolean;
+    onBookMeetingRoom: () => void;
     onCancelBooking: () => void;
     onMyBookings: () => void;
     onBookSeat: () => void;
     onSignOut: () => void;
-}> = ({ canCreateBookings, onCancelBooking, onMyBookings, onBookSeat, onSignOut }) => (
+}> = ({
+    canCreateBookings,
+    onBookMeetingRoom,
+    onCancelBooking,
+    onMyBookings,
+    onBookSeat,
+    onSignOut
+}) => (
     <aside className="dashboard-sidebar" aria-label="Primary navigation">
         <AvanadeLogo
-            className="dashboard-brand"
-            role="img"
             aria-label="Avanade"
+            className="dashboard-brand"
             preserveAspectRatio="xMidYMid meet"
+            role="img"
         />
         <nav className="dashboard-navigation">
             <NavigationItem active icon={HomeIcon} label="Home" />
@@ -97,10 +127,26 @@ export const Sidebar: React.FC<{
                 label="Book Seat"
                 onClick={onBookSeat}
             />
-            <NavigationItem icon={BookRoomIcon} label="Book Room" />
-            <NavigationItem icon={BookingsIcon} label="My Bookings" onClick={onMyBookings} />
-            <NavigationItem icon={CancelIcon} label="Cancel Booking" onClick={onCancelBooking} />
-            <NavigationItem icon={SignOutIcon} label="Sign out" onClick={onSignOut} />
+            <NavigationItem
+                icon={BookRoomIcon}
+                label="Book Room"
+                onClick={onBookMeetingRoom}
+            />
+            <NavigationItem
+                icon={BookingsIcon}
+                label="My Bookings"
+                onClick={onMyBookings}
+            />
+            <NavigationItem
+                icon={CancelIcon}
+                label="Cancel Booking"
+                onClick={onCancelBooking}
+            />
+            <NavigationItem
+                icon={SignOutIcon}
+                label="Sign out"
+                onClick={onSignOut}
+            />
         </nav>
     </aside>
 );
@@ -129,15 +175,32 @@ export const QuickAction: React.FC<IQuickActionProps> = ({
     </button>
 );
 
-export const MeetingCard: React.FC = () => (
+export const MeetingCard: React.FC<IMeetingCardProps> = ({
+    booking,
+    inProgress,
+    roomName
+}) => (
     <article className="meeting-card">
         <span className="meeting-icon">
             <MeetingIcon aria-hidden="true" focusable="false" />
         </span>
-        <div>
-            <h3>Project Review Meeting</h3>
-            <p>Conf Room 1 <span aria-hidden="true">•</span> 10:00 AM – 11:00 AM</p>
+        <div className="meeting-card-details">
+            <h3>{roomName}</h3>
+            <p>
+                {booking.practice || "Team not specified"}
+                <span aria-hidden="true">•</span>
+                {formatTime(booking.startTime)} – {formatTime(booking.endTime)}
+            </p>
         </div>
+        <span
+            className={
+                inProgress
+                    ? "meeting-state meeting-state--active"
+                    : "meeting-state"
+            }
+        >
+            {inProgress ? "In use now" : "Upcoming"}
+        </span>
     </article>
 );
 
@@ -150,6 +213,9 @@ export class HomeScreen extends React.PureComponent<IHomeScreenProps> {
             canCreateBookings,
             displayName,
             exceptions,
+            meetingRoomBookings,
+            meetingRooms,
+            onBookMeetingRoom,
             onCancelBooking,
             onMyBookings,
             onBookSeat,
@@ -157,32 +223,80 @@ export class HomeScreen extends React.PureComponent<IHomeScreenProps> {
             seats
         } = this.props;
         const today = normalizeDateValue(new Date());
-        const seatKeys = new Set(seats.map((seat) => seat.seatKey.trim().toLowerCase()));
+        const now = new Date();
+        const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(
+            now.getMinutes()
+        ).padStart(2, "0")}`;
+        const seatKeys = new Set(
+            seats.map((seat) => seat.seatKey.trim().toLowerCase())
+        );
         const activeTodayBookings = bookings.filter((booking) => {
             const status = booking.status.trim().toLowerCase();
 
-            return booking.bookingDate === today &&
+            return (
+                booking.bookingDate === today &&
                 (status === "booked" || status === "selected") &&
                 isActiveBooking(booking) &&
-                seatKeys.has(booking.seatKey.trim().toLowerCase());
+                seatKeys.has(booking.seatKey.trim().toLowerCase())
+            );
         });
         const occupiedSeatKeys = new Set(
-            activeTodayBookings.map((booking) => booking.seatKey.trim().toLowerCase())
+            activeTodayBookings.map((booking) =>
+                booking.seatKey.trim().toLowerCase()
+            )
         );
         const bookedSeatKeys = new Set(
             activeTodayBookings
-                .filter((booking) => booking.status.trim().toLowerCase() === "booked")
+                .filter(
+                    (booking) =>
+                        booking.status.trim().toLowerCase() === "booked"
+                )
                 .map((booking) => booking.seatKey.trim().toLowerCase())
         );
         const blockedSeatKeys = new Set(
             exceptions
-                .filter((exception) => isSeatExceptionActive(exception, today))
+                .filter((exception) =>
+                    isSeatExceptionActive(exception, today)
+                )
                 .map((exception) => exception.seatKey.trim().toLowerCase())
         );
-        const unavailableSeatKeys = new Set([...occupiedSeatKeys, ...blockedSeatKeys]);
+        const unavailableSeatKeys = new Set([
+            ...occupiedSeatKeys,
+            ...blockedSeatKeys
+        ]);
         const availableSeatCount = seats.filter(
-            (seat) => !unavailableSeatKeys.has(seat.seatKey.trim().toLowerCase())
+            (seat) =>
+                !unavailableSeatKeys.has(seat.seatKey.trim().toLowerCase())
         ).length;
+        const activeRooms = meetingRooms.filter(
+            (room) => room.status.trim().toLowerCase() === "active"
+        );
+        const roomByKey = new Map(
+            activeRooms.map((room) => [
+                room.roomKey.trim().toLowerCase(),
+                room
+            ])
+        );
+        const todayMeetings = meetingRoomBookings
+            .filter(
+                (booking) =>
+                    booking.bookingDate === today &&
+                    booking.status.trim().toLowerCase() === "booked" &&
+                    booking.endTime > currentTime &&
+                    roomByKey.has(booking.roomKey.trim().toLowerCase())
+            )
+            .sort((left, right) =>
+                left.startTime.localeCompare(right.startTime)
+            );
+        const occupiedRoomKeys = new Set(
+            todayMeetings
+                .filter(
+                    (booking) =>
+                        booking.startTime <= currentTime &&
+                        booking.endTime > currentTime
+                )
+                .map((booking) => booking.roomKey.trim().toLowerCase())
+        );
         const classes = ["dashboard-control"];
 
         if (allocatedWidth > 0 && allocatedWidth <= 600) {
@@ -198,12 +312,15 @@ export class HomeScreen extends React.PureComponent<IHomeScreenProps> {
         }
 
         const controlStyle: React.CSSProperties | undefined =
-            allocatedHeight > 0 ? { height: `${allocatedHeight}px` } : undefined;
+            allocatedHeight > 0
+                ? { height: `${allocatedHeight}px` }
+                : undefined;
 
         return (
             <div className={classes.join(" ")} style={controlStyle}>
                 <Sidebar
                     canCreateBookings={canCreateBookings}
+                    onBookMeetingRoom={onBookMeetingRoom}
                     onCancelBooking={onCancelBooking}
                     onMyBookings={onMyBookings}
                     onBookSeat={onBookSeat}
@@ -221,10 +338,28 @@ export class HomeScreen extends React.PureComponent<IHomeScreenProps> {
                         </div>
                     </header>
 
-                    <section className="status-grid" aria-label="Today at a glance">
-                        <StatusCard label="Seat Availability" value={String(availableSeatCount)} />
-                        <StatusCard label="Meetings Rooms" value="1" />
-                        <StatusCard label="Booked Seats" value={String(bookedSeatKeys.size)} />
+                    <section
+                        aria-label="Today at a glance"
+                        className="status-grid"
+                    >
+                        <StatusCard
+                            label="Seat Availability"
+                            value={String(availableSeatCount)}
+                        />
+                        <StatusCard
+                            label="Available Meeting Rooms"
+                            value={String(
+                                activeRooms.length - occupiedRoomKeys.size
+                            )}
+                        />
+                        <StatusCard
+                            label="Occupied Meeting Rooms"
+                            value={String(occupiedRoomKeys.size)}
+                        />
+                        <StatusCard
+                            label="Booked Seats"
+                            value={String(bookedSeatKeys.size)}
+                        />
                     </section>
 
                     <section className="dashboard-section">
@@ -236,18 +371,60 @@ export class HomeScreen extends React.PureComponent<IHomeScreenProps> {
                                 label="Book Seat"
                                 onClick={onBookSeat}
                             />
-                            <QuickAction icon={ActionRoomIcon} label="Book Meeting Room" />
-                            <QuickAction icon={ActionBookingsIcon} label="My Bookings" onClick={onMyBookings} />
-                            <QuickAction icon={CancelIcon} label="Cancel Booking" onClick={onCancelBooking} />
+                            <QuickAction
+                                icon={ActionRoomIcon}
+                                label="Book Meeting Room"
+                                onClick={onBookMeetingRoom}
+                            />
+                            <QuickAction
+                                icon={ActionBookingsIcon}
+                                label="My Bookings"
+                                onClick={onMyBookings}
+                            />
+                            <QuickAction
+                                icon={CancelIcon}
+                                label="Cancel Booking"
+                                onClick={onCancelBooking}
+                            />
                         </div>
                     </section>
 
                     <section className="dashboard-section">
                         <div className="section-heading">
                             <h2>Upcoming Meetings</h2>
-                            <button type="button">View All</button>
+                            <span>{todayMeetings.length} remaining today</span>
                         </div>
-                        <MeetingCard />
+                        {todayMeetings.length ? (
+                            <div className="meeting-list">
+                                {todayMeetings.map((booking) => {
+                                    const room = roomByKey.get(
+                                        booking.roomKey.trim().toLowerCase()
+                                    );
+
+                                    return (
+                                        <MeetingCard
+                                            booking={booking}
+                                            inProgress={
+                                                booking.startTime <= currentTime
+                                            }
+                                            key={
+                                                booking.bookingId ||
+                                                `${booking.roomKey}|${booking.startTime}`
+                                            }
+                                            roomName={
+                                                room?.roomName ??
+                                                booking.roomKey
+                                            }
+                                        />
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="meeting-empty">
+                                No meetings are in progress or scheduled later
+                                today.
+                            </div>
+                        )}
                     </section>
                 </main>
             </div>

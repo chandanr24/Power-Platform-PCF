@@ -1,8 +1,11 @@
 import {
     createSeatKey,
     IEmployee,
+    IMeetingRoom,
+    IMeetingRoomBooking,
     ISeat,
-    ISeatException
+    ISeatException,
+    normalizeDateValue
 } from "./BookingModels";
 
 export const previewEmployees: IEmployee[] = [
@@ -60,3 +63,55 @@ export const previewSeatExceptions: ISeatException[] = [11, 28].map(
         };
     }
 );
+
+export const previewMeetingRooms: IMeetingRoom[] = [
+    {
+        capacity: 8,
+        floor: "Floor 1",
+        roomId: "1",
+        roomKey: "floor-1|zone-a|conf-1",
+        roomName: "Conference Room 1",
+        status: "Active",
+        zone: "Zone A"
+    },
+    {
+        capacity: 14,
+        floor: "Floor 1",
+        roomId: "2",
+        roomKey: "floor-1|zone-a|conf-2",
+        roomName: "Conference Room 2",
+        status: "Active",
+        zone: "Zone A"
+    }
+];
+
+const getPreviewTime = (minuteOffset: number): string => {
+    const value = new Date(Date.now() + minuteOffset * 60 * 1000);
+
+    return `${String(value.getHours()).padStart(2, "0")}:${String(
+        value.getMinutes()
+    ).padStart(2, "0")}`;
+};
+
+export const previewMeetingRoomBookings: IMeetingRoomBooking[] = [
+    {
+        bookedByEmail: "manager@example.com",
+        bookingDate: normalizeDateValue(new Date()),
+        bookingId: "preview-meeting-1",
+        endTime: getPreviewTime(30),
+        practice: "Preview Team",
+        roomKey: "floor-1|zone-a|conf-1",
+        startTime: getPreviewTime(-15),
+        status: "Booked"
+    },
+    {
+        bookedByEmail: "manager@example.com",
+        bookingDate: normalizeDateValue(new Date()),
+        bookingId: "preview-meeting-2",
+        endTime: getPreviewTime(90),
+        practice: "Preview Team",
+        roomKey: "floor-1|zone-a|conf-2",
+        startTime: getPreviewTime(45),
+        status: "Booked"
+    }
+];

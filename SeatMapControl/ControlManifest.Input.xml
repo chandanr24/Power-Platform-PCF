@@ -1,18 +1,22 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest>
 
-  <control namespace="SeatBooking" constructor="SeatMapControl" version="1.3.35" display-name-key="SeatMapControl" description-key="SeatMapControl description" control-type="virtual" >
+  <control namespace="SeatBooking" constructor="SeatMapControl" version="1.3.36" display-name-key="SeatMapControl" description-key="SeatMapControl description" control-type="virtual" >
     <property name="previewMode" display-name-key="Preview_Mode" description-key="Temporary local screen preview without Canvas or SharePoint writes; keep false in production" of-type="TwoOptions" usage="input" required="false" />
     <property name="currentUserEmail" display-name-key="Current_User_Email" description-key="Email of the signed-in Canvas app user" of-type="SingleLine.Text" usage="input" required="false" />
     <property name="currentUserEmployeeCode" display-name-key="Current_User_Employee_Code" description-key="EmpCode of the signed-in Canvas app user" of-type="SingleLine.Text" usage="input" required="false" />
     <property name="canCreateBookings" display-name-key="Can_Create_Bookings" description-key="Whether the current user may create seat bookings" of-type="TwoOptions" usage="input" required="false" />
     <property name="canBookForAnyone" display-name-key="Can_Book_For_Anyone" description-key="Whether the current user may select any employee" of-type="TwoOptions" usage="input" required="false" />
+    <property name="canBookMeetingRooms" display-name-key="Can_Book_Meeting_Rooms" description-key="Whether the current user may open and submit meeting room bookings" of-type="TwoOptions" usage="input" required="false" />
     <property name="maximumPeoplePerBooking" display-name-key="Maximum_People_Per_Booking" description-key="Maximum employees allowed in one booking" of-type="Whole.None" usage="input" required="false" />
     <property name="cancelBookingVisibleRecordCount" display-name-key="Cancel_Booking_Visible_Record_Count" description-key="Number of Cancel Booking rows visible before scrolling; set from Power Apps" of-type="Whole.None" usage="input" required="false" />
     <property name="myBookingsPageSize" display-name-key="My_Bookings_Page_Size" description-key="Number of My Bookings records displayed per page; set from Power Apps" of-type="Whole.None" usage="input" required="false" />
     <property name="actionResultJson" display-name-key="Action_Result_JSON" description-key="Result returned by Canvas after handling the latest action request" of-type="Multiple" usage="input" required="false" />
     <property name="actionRequestJson" display-name-key="Action_Request_JSON" description-key="Booking action requested by the React control" of-type="Multiple" usage="output" required="false" />
     <property name="actionSequence" display-name-key="Action_Sequence" description-key="Incrementing value used to trigger the Canvas OnChange formula" of-type="Whole.None" usage="output" required="false" />
+    <property name="meetingRoomActionResultJson" display-name-key="Meeting_Room_Action_Result_JSON" description-key="Result returned by Canvas after handling the latest meeting room booking request" of-type="Multiple" usage="input" required="false" />
+    <property name="meetingRoomActionRequestJson" display-name-key="Meeting_Room_Action_Request_JSON" description-key="Meeting room action requested by the React control" of-type="Multiple" usage="output" required="false" />
+    <property name="meetingRoomActionSequence" display-name-key="Meeting_Room_Action_Sequence" description-key="Incrementing value used to trigger the Canvas meeting room action formula" of-type="Whole.None" usage="output" required="false" />
     <property name="signOutSequence" display-name-key="Sign_Out_Sequence" description-key="Incrementing value used to request Power Apps sign-out" of-type="Whole.None" usage="output" required="false" />
     <!--external-service-usage node declares whether this 3rd party PCF control is using external service or not, if yes, this control will be considered as premium and please also add the external domain it is using.
     If it is not using any external service, please set the enabled="false" and DO NOT add any domain below. The "enabled" will be false by default.
@@ -96,7 +100,27 @@
       <property-set name="accessUser" display-name-key="Access_User" description-key="User assigned the access role" of-type="Lookup.Simple" usage="bound" required="true" />
       <property-set name="accessRole" display-name-key="Access_Role" description-key="HR or Practice Lead" of-type="OptionSet" usage="bound" required="true" />
       <property-set name="accessTeamId" display-name-key="Access_Team_ID" description-key="Team assigned to a Practice Lead" of-type="OptionSet" usage="bound" required="false" />
-    </data-set>    <resources>
+    </data-set>
+    <data-set name="meetingRoomsDataSet" display-name-key="Meeting_Rooms_Dataset">
+      <property-set name="meetingRoomId" display-name-key="Meeting_Room_ID" description-key="MeetingRooms record ID" of-type="Whole.None" usage="bound" required="true" />
+      <property-set name="meetingRoomKey" display-name-key="Meeting_Room_Key" description-key="Stable unique room key" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="meetingRoomName" display-name-key="Meeting_Room_Name" description-key="Meeting room display name" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="meetingRoomFloor" display-name-key="Meeting_Room_Floor" description-key="Room floor" of-type="OptionSet" usage="bound" required="true" />
+      <property-set name="meetingRoomZone" display-name-key="Meeting_Room_Zone" description-key="Room zone" of-type="OptionSet" usage="bound" required="true" />
+      <property-set name="meetingRoomCapacity" display-name-key="Meeting_Room_Capacity" description-key="Room capacity" of-type="Whole.None" usage="bound" required="true" />
+      <property-set name="meetingRoomStatus" display-name-key="Meeting_Room_Status" description-key="Room status such as Active or Inactive" of-type="OptionSet" usage="bound" required="true" />
+    </data-set>
+    <data-set name="meetingRoomBookingsDataSet" display-name-key="Meeting_Room_Bookings_Dataset">
+      <property-set name="meetingBookingId" display-name-key="Meeting_Booking_ID" description-key="MeetingRoomBookings record ID" of-type="Whole.None" usage="bound" required="true" />
+      <property-set name="meetingBookingDate" display-name-key="Meeting_Booking_Date" description-key="Meeting date" of-type="DateAndTime.DateAndTime" usage="bound" required="true" />
+      <property-set name="meetingBookingRoomKey" display-name-key="Meeting_Booking_Room_Key" description-key="Stable meeting room key" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="meetingBookingStartTime" display-name-key="Meeting_Booking_Start_Time" description-key="Meeting start time in HH:mm format" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="meetingBookingEndTime" display-name-key="Meeting_Booking_End_Time" description-key="Meeting end time in HH:mm format" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="meetingBookingStatus" display-name-key="Meeting_Booking_Status" description-key="Meeting booking status" of-type="OptionSet" usage="bound" required="true" />
+      <property-set name="meetingBookingPractice" display-name-key="Meeting_Booking_Practice" description-key="Team or practice selected for the meeting" of-type="OptionSet" usage="bound" required="true" />
+      <property-set name="meetingBookingBookedBy" display-name-key="Meeting_Booking_Booked_By" description-key="User who created the room booking" of-type="Lookup.Simple" usage="bound" required="true" />
+    </data-set>
+    <resources>
       <code path="index.ts" order="1"/>
       <css path="css/SeatMapControl.css" order="1" />
       <css path="css/HomeScreen.css" order="2" />
@@ -106,6 +130,7 @@
       <css path="css/CancelBookingScreen.css" order="6" />
       <css path="css/MyBookingsScreen.css" order="7" />
       <css path="css/ErrorDialog.css" order="8" />
+      <css path="css/MeetingRoomBookingScreen.css" order="9" />
       <platform-library name="React" version="16.14.0" />
       <platform-library name="Fluent" version="9.46.2" />
       <!-- UNCOMMENT TO ADD MORE RESOURCES

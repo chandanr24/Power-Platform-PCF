@@ -1,0 +1,339 @@
+.meeting-room-control,
+.meeting-room-control * {
+    box-sizing: border-box;
+}
+
+.meeting-room-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    min-height: 640px;
+    padding: 32px 16px;
+    overflow: auto;
+    background: #f7f9ff;
+    color: #0f172a;
+    font-family: "Plus Jakarta Sans", Inter, "Segoe UI", Arial, sans-serif;
+}
+
+.meeting-room-card {
+    width: min(100%, 500px);
+}
+
+.meeting-time-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.meeting-room-control input[type="search"] {
+    width: 100%;
+    min-height: 48px;
+    padding: 13px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    outline: 0;
+    background: #ffffff;
+    color: #334155;
+    font: inherit;
+    font-size: 14px;
+}
+
+.meeting-time-picker {
+    position: relative;
+    width: 100%;
+}
+
+.meeting-time-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 48px;
+    padding: 13px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    outline: 0;
+    background: #ffffff;
+    color: #334155;
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+}
+
+.meeting-time-trigger:focus,
+.meeting-time-trigger[aria-expanded="true"] {
+    border-color: #ff5800;
+    box-shadow: 0 0 0 3px rgb(255 88 0 / 14%);
+}
+
+.meeting-time-placeholder {
+    color: #64748b;
+}
+
+.meeting-time-icon {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    border: 1.8px solid #0f172a;
+    border-radius: 50%;
+}
+
+.meeting-time-icon::before,
+.meeting-time-icon::after {
+    position: absolute;
+    left: 8px;
+    width: 1.5px;
+    border-radius: 2px;
+    background: #0f172a;
+    content: "";
+    transform-origin: bottom;
+}
+
+.meeting-time-icon::before {
+    top: 4px;
+    height: 5px;
+}
+
+.meeting-time-icon::after {
+    top: 8px;
+    height: 4px;
+    transform: rotate(120deg);
+}
+
+.meeting-time-popover {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 8px);
+    left: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    width: 280px;
+    max-width: calc(100vw - 32px);
+    padding: 12px;
+    border: 1px solid #fed7aa;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 16px 36px rgb(15 23 42 / 18%);
+}
+
+.meeting-time-grid > *:last-child .meeting-time-popover {
+    right: 0;
+    left: auto;
+}
+
+.meeting-time-column {
+    min-width: 0;
+}
+
+.meeting-time-column > span {
+    display: block;
+    margin-bottom: 6px;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.meeting-time-options {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    height: 156px;
+    padding: 2px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+
+.meeting-time-period .meeting-time-options {
+    height: auto;
+}
+
+.meeting-time-option {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 6px 8px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #334155;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.meeting-time-option:hover {
+    border-color: #fed7aa;
+    background: #fff7ed;
+}
+
+.meeting-time-option--selected {
+    border-color: #ff5800;
+    background: #ff5800;
+    color: #ffffff;
+}
+
+.meeting-time-apply {
+    grid-column: 1 / -1;
+    min-height: 36px;
+    border: 0;
+    border-radius: 9px;
+    background: #ff5800;
+    color: #ffffff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.meeting-time-apply:hover {
+    background: #e94f00;
+}
+
+.meeting-room-control input:focus {
+    border-color: #ff5800;
+    box-shadow: 0 0 0 3px rgb(255 88 0 / 14%);
+}
+
+.meeting-room-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 86px;
+    max-height: 210px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.meeting-room-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    min-height: 58px;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #334155;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+}
+
+.meeting-room-option > span:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.meeting-room-option small,
+.meeting-room-empty {
+    color: #64748b;
+    font-size: 12px;
+}
+
+.meeting-room-option--selected {
+    border-color: #ff5800;
+    background: #fff1e8;
+    box-shadow: 0 0 0 2px rgb(255 88 0 / 12%);
+}
+
+.meeting-room-empty {
+    margin: 0;
+    padding: 18px 12px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.meeting-room-confirmation {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.meeting-room-confirmation h2,
+.meeting-room-confirmation p {
+    margin: 0;
+}
+
+.meeting-room-confirmation dl {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 0;
+}
+
+.meeting-room-confirmation dl > div {
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.meeting-room-confirmation dt {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.meeting-room-confirmation dd {
+    margin: 3px 0 0;
+    color: #1e293b;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.meeting-room-success {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    background: #f0fdf4;
+    color: #166534;
+}
+
+.meeting-room-control--mobile {
+    align-items: stretch;
+    min-height: 100%;
+    padding: 0;
+    background: #ffffff;
+}
+
+.meeting-room-control--mobile .meeting-room-card {
+    justify-content: center;
+    width: 100%;
+    min-height: 100%;
+    padding: 28px 20px;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.meeting-room-control--short {
+    align-items: flex-start;
+    min-height: 100%;
+    padding-block: 20px;
+}
+
+@media (max-width: 480px) {
+    .meeting-time-grid,
+    .meeting-room-confirmation dl {
+        grid-template-columns: 1fr;
+    }
+
+    .meeting-time-grid > * .meeting-time-popover {
+        right: auto;
+        left: 0;
+    }
+}
